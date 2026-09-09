@@ -6,6 +6,15 @@ pageClass: changelog-page
 
 本页记录 Stock SDK 的版本更新历史。v2.0.0 是一次**架构跃迁**——在不扩展数据源的前提下，重做了符号模型、数据契约、API 表面、请求层与错误体系，并新增 CLI / MCP 与 subpath 导出。
 
+## v2.4.3
+
+> 发布时间：待发布
+
+### 修复
+
+- **实时资金流 `quotes.fundFlow` / `get_fund_flow` 返回空数组**（[#74](https://github.com/chengzuopeng/stock-sdk/pull/74)，感谢 [@run-bigpig](https://github.com/run-bigpig)）：腾讯 `ff_` 行情键已下线（上游返回 `v_pv_none_match`），改用东财 `push2delay` 个股行情扩展字段（`f135~f149`）。金额保持万元口径，净占比按成交额现算，`timestamp` 改为数据更新时刻。该源为延迟镜像（实时 `push2` 节点对此端点当前全部断连），盘中数据可能滞后。
+- **板块异动 `marketEvent.boardChanges` / `get_board_changes` 板块级字段全空**（[#73](https://github.com/chengzuopeng/stock-sdk/issues/73)，感谢 [@DrogueYANG](https://github.com/DrogueYANG) 定位）：上游 `getAllBKChanges` 字段改名（`bkn/bkz/bkj/bkc` → `n/u/zjl/ct`，分布由 `bkdf` 对象改为 `ydl` 数组），解析器改读新字段并保留旧字段回退；`topStock*` 未受影响。1003 条实测由全空恢复为全部有值。
+
 ## v2.4.2
 
 > 发布时间：待发布

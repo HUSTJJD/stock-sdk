@@ -6,6 +6,15 @@ pageClass: changelog-page
 
 This page records the release history of Stock SDK. v2.0.0 is an **architectural leap** — without adding data sources, it reworks the symbol model, data contract, API surface, request layer, and error system, and adds a CLI / MCP and subpath exports.
 
+## v2.4.3
+
+> Released: Unreleased
+
+### Fixed
+
+- **Real-time fund flow `quotes.fundFlow` / `get_fund_flow` returned an empty array** ([#74](https://github.com/chengzuopeng/stock-sdk/pull/74), thanks [@run-bigpig](https://github.com/run-bigpig)): Tencent's `ff_` quote keys have been retired (the upstream now answers `v_pv_none_match`), so the method switched to EastMoney's `push2delay` per-stock extended fields (`f135~f149`). Amounts stay in units of 10k CNY, net ratios are derived from turnover, and `timestamp` now carries the data update time. Note the source is a delayed mirror (every real-time `push2` node currently drops connections on this endpoint), so intraday values may lag.
+- **Sector changes `marketEvent.boardChanges` / `get_board_changes` returned empty sector-level fields** ([#73](https://github.com/chengzuopeng/stock-sdk/issues/73), thanks [@DrogueYANG](https://github.com/DrogueYANG) for the diagnosis): the upstream `getAllBKChanges` renamed its fields (`bkn/bkz/bkj/bkc` → `n/u/zjl/ct`, and the distribution moved from a `bkdf` object to a `ydl` array). The parser now reads the new fields with the old ones kept as a fallback; `topStock*` was never affected. Verified live: all 1003 rows went from empty to fully populated.
+
 ## v2.4.2
 
 > Released: Unreleased
