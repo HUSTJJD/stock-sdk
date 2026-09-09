@@ -85,6 +85,11 @@ interface IndividualStockChangesResponse {
 interface BoardChangesResponse {
   data?: {
     allbk?: Array<{
+      n?: string;
+      u?: number | string;
+      zjl?: number | string;
+      ct?: number | string;
+      ydl?: Array<{ t?: number | string; ct?: number | string }>;
       bkn?: string;
       bkz?: number | string;
       bkj?: number | string;
@@ -489,17 +494,24 @@ export async function getBoardChanges(
     // 服务端 m: 0 = 大笔买入, 1 = 大笔卖出
     const direction = ms.m === 0 ? '大笔买入' : ms.m === 1 ? '大笔卖出' : '';
     const distribution: Record<string, number> = {};
-    const distRaw = item.bkdf ?? item.bkdfdis;
-    if (distRaw && typeof distRaw === 'object') {
-      for (const [k, v] of Object.entries(distRaw as Record<string, unknown>)) {
-        distribution[k] = Number(v) || 0;
+    if (Array.isArray(item.ydl)) {
+      for (const entry of item.ydl) {
+        if (entry?.t === undefined || entry.t === null) continue;
+        distribution[String(entry.t)] = Number(entry.ct) || 0;
+      }
+    } else {
+      const distRaw = item.bkdf ?? item.bkdfdis;
+      if (distRaw && typeof distRaw === 'object') {
+        for (const [k, v] of Object.entries(distRaw as Record<string, unknown>)) {
+          distribution[k] = Number(v) || 0;
+        }
       }
     }
     return {
-      name: String(item.bkn ?? ''),
-      changePercent: toNumberSafe(item.bkz),
-      mainNetInflow: toNumberSafe(item.bkj),
-      totalChangeCount: toNumberSafe(item.bkc),
+      name: String(item.n ?? item.bkn ?? ''),
+      changePercent: toNumberSafe(item.u ?? item.bkz),
+      mainNetInflow: toNumberSafe(item.zjl ?? item.bkj),
+      totalChangeCount: toNumberSafe(item.ct ?? item.bkc),
       topStockCode: String(ms.c ?? ''),
       topStockName: String(ms.n ?? ''),
       topStockDirection: direction,

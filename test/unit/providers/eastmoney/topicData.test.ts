@@ -395,7 +395,61 @@ describe('TopicData - getIndividualStockChanges(个股按日异动)', () => {
 describe('TopicData - getBoardChanges', () => {
   const sdk = new StockSDK();
 
-  it('parses board changes with top stock and direction', async () => {
+  it('#73: 解析上游改名后的字段 n/u/zjl/ct,ydl 数组转为类型码→次数分布', async () => {
+    server.use(
+      http.get(`${ZT_BASE}/getAllBKChanges`, () =>
+        HttpResponse.json({
+          data: {
+            allbk: [
+              {
+                c: 'BK0596',
+                m: 90,
+                n: '融资融券',
+                u: '-0.42',
+                zjl: -4166062.08,
+                ct: 8021,
+                ms: { c: '920071', m: 0, n: '金钛股份', t: 8 },
+                ydl: [
+                  { t: 8201, ct: 1288 },
+                  { t: 8193, ct: 1147 },
+                  { t: 128, ct: 922 },
+                ],
+              },
+              {
+                c: 'BK0475',
+                m: 90,
+                n: '银行',
+                u: 0.5,
+                zjl: 1000000,
+                ct: 20,
+                ms: { c: '601398', m: 1, n: '工商银行', t: 4 },
+                ydl: [],
+              },
+            ],
+          },
+        })
+      )
+    );
+
+    const result = await sdk.marketEvent.boardChanges();
+    expect(result).toHaveLength(2);
+    expect(result[0]).toEqual({
+      name: '融资融券',
+      changePercent: -0.42,
+      mainNetInflow: -4166062.08,
+      totalChangeCount: 8021,
+      topStockCode: '920071',
+      topStockName: '金钛股份',
+      topStockDirection: '大笔买入',
+      changeTypeDistribution: { '8201': 1288, '8193': 1147, '128': 922 },
+    });
+    expect(result[1].name).toBe('银行');
+    expect(result[1].changePercent).toBe(0.5);
+    expect(result[1].topStockDirection).toBe('大笔卖出');
+    expect(result[1].changeTypeDistribution).toEqual({});
+  });
+
+  it('兼容旧字段 bkn/bkz/bkj/bkc 与对象形态的 bkdf 分布', async () => {
     server.use(
       http.get(`${ZT_BASE}/getAllBKChanges`, () =>
         HttpResponse.json({
@@ -406,14 +460,8 @@ describe('TopicData - getBoardChanges', () => {
                 bkz: 2.5,
                 bkj: 5000000000,
                 bkc: 50,
+                bkdf: { '8201': 30, '4': 20 },
                 ms: { m: 0, c: '600519', n: '贵州茅台' },
-              },
-              {
-                bkn: '银行',
-                bkz: -0.5,
-                bkj: -1000000000,
-                bkc: 20,
-                ms: { m: 1, c: '601398', n: '工商银行' },
               },
             ],
           },
@@ -422,9 +470,14 @@ describe('TopicData - getBoardChanges', () => {
     );
 
     const result = await sdk.marketEvent.boardChanges();
-    expect(result).toHaveLength(2);
-    expect(result[0].name).toBe('白酒');
-    expect(result[0].topStockDirection).toBe('大笔买入');
-    expect(result[1].topStockDirection).toBe('大笔卖出');
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      name: '白酒',
+      changePercent: 2.5,
+      mainNetInflow: 5000000000,
+      totalChangeCount: 50,
+      topStockDirection: '大笔买入',
+      changeTypeDistribution: { '8201': 30, '4': 20 },
+    });
   });
 });
