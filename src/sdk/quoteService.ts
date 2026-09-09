@@ -40,7 +40,7 @@ export class QuoteService extends BaseService {
   }
 
   getFundFlow(codes: string[]): Promise<FundFlow[]> {
-    return tencent.getFundFlow(this.client, codes);
+    return eastmoney.getRealtimeFundFlow(this.client, codes);
   }
 
   getPanelLargeOrder(codes: string[]): Promise<PanelLargeOrder[]> {

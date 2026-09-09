@@ -155,6 +155,20 @@ Wire it into Cursor / Claude Desktop / Codex / Gemini, etc. (`mcpServers` config
 
 `STOCK_SDK_MCP_TOOLS=core|full|<comma-separated tool names>` controls the tool set (default `core`).
 
+To expose all 92 MCP tools when launching through `npx`, add the `env` entry:
+
+```json
+{
+  "mcpServers": {
+    "stock-sdk": {
+      "command": "npx",
+      "args": ["-y", "stock-sdk", "mcp"],
+      "env": { "STOCK_SDK_MCP_TOOLS": "full" }
+    }
+  }
+}
+```
+
 Beyond tools, it ships **7 scenario AI Skills** (MCP Prompts — e.g. `analyze_stock` / `screen_stocks` / `diagnose_stock`) that Prompts-aware clients can trigger in one click; `STOCK_SDK_MCP_PROMPTS=core|full|<list>` controls the skill set (default `core`). See the [AI Skills docs](https://stock-sdk.linkdiary.cn/en/skills/).
 
 👉 [Full MCP docs](https://stock-sdk.linkdiary.cn/en/mcp/)
@@ -284,6 +298,8 @@ Coverage varies by market — this table helps you quickly check whether the SDK
 | `sdk.calendar` | `.isTradingDay` / `.nextTradingDay` / `.prevTradingDay` / `.marketStatus` |
 | `sdk.reference` | `.dividendDetail` / `.tradingCalendar` |
 | top-level | `sdk.search(keyword)` |
+
+`sdk.quotes.fundFlow(codes)` provides Eastmoney-sourced real-time A-share fund-flow snapshots, including main/small-order inflow, outflow, net amount, and ratios. Use `sdk.fundFlow.*` for history, rankings, and sector flows.
 
 > Indicator math moved from the main package to a subpath: `import { calcMACD } from 'stock-sdk/indicators'`.
 > Migrating from the v1 flat API? See the [v1 → v2 migration guide](https://stock-sdk.linkdiary.cn/en/guide/migration-v1-to-v2) (with the full `sdk.getXxx()` → `sdk.<ns>.<method>()` mapping).

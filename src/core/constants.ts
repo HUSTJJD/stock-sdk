@@ -44,6 +44,10 @@ export const EM_DATACENTER_URL = 'https://datacenter-web.eastmoney.com/api/data/
 // 东方财富资金流 API（push2his 日线资金流）
 export const EM_FFLOW_URL = 'https://push2his.eastmoney.com/api/qt/stock/fflow/daykline/get';
 
+// 东方财富个股实时资金流 API（push2delay 个股行情扩展字段）。
+// 通用 push2 节点可能直接断开高频/数据中心出口连接，delay 节点更稳定。
+export const EM_REALTIME_FFLOW_URL = 'https://push2delay.eastmoney.com/api/qt/stock/get';
+
 // 东方财富个股/板块资金流排名 API（push2 通用 clist）
 export const EM_CLIST_URL = 'https://push2.eastmoney.com/api/qt/clist/get';
 

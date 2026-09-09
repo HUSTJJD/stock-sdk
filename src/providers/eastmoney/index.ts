@@ -103,6 +103,7 @@ export {
 
 // 资金流向
 export {
+  getRealtimeFundFlow,
   getIndividualFundFlow,
   getMarketFundFlow,
   getFundFlowRank,
@@ -164,4 +165,3 @@ export {
   type GetHotThemesOptions,
   type GetThemeFundsOptions,
 } from './fundTheme';
-

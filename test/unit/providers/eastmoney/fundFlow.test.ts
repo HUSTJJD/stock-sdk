@@ -4,9 +4,72 @@ import { server } from '../../../mocks/server';
 import StockSDK from '../../../../src/index';
 
 const FFLOW_URL = 'https://push2his.eastmoney.com/api/qt/stock/fflow/daykline/get';
-// push2.eastmoney.com 不在 fallback 池中，请求会被路由到 17/29/79/91 前缀，
-// 这里使用通配符匹配所有 push2.eastmoney.com 衍生 host
+const REALTIME_FFLOW_URL = 'https://push2delay.eastmoney.com/api/qt/stock/get';
 const CLIST_URL = 'https://*.push2.eastmoney.com/api/qt/clist/get';
+
+describe('FundFlow - getRealtimeFundFlow', () => {
+  const sdk = new StockSDK();
+
+  it('parses Eastmoney realtime flow and preserves the legacy FundFlow units', async () => {
+    server.use(
+      http.get(REALTIME_FFLOW_URL, ({ request }) => {
+        const secid = new URL(request.url).searchParams.get('secid');
+        expect(['1.601899', '0.000938']).toContain(secid);
+        const data =
+          secid === '1.601899'
+            ? {
+                f48: 100_000_000,
+                f57: '601899',
+                f58: '紫金矿业',
+                f86: 1715679000,
+                f135: 30_000_000,
+                f136: 10_000_000,
+                f137: 20_000_000,
+                f147: 8_000_000,
+                f148: 12_000_000,
+                f149: -4_000_000,
+              }
+            : {
+                f48: 50_000_000,
+                f57: '000938',
+                f58: '紫光股份',
+                f86: 1715679000,
+                f135: 5_000_000,
+                f136: 7_000_000,
+                f137: -2_000_000,
+                f147: 2_000_000,
+                f148: 1_000_000,
+                f149: 1_000_000,
+              };
+        return HttpResponse.json({ data });
+      })
+    );
+
+    const result = await sdk.quotes.fundFlow(['601899', '000938']);
+    expect(result).toHaveLength(2);
+    expect(result[0]).toMatchObject({
+      code: '601899',
+      name: '紫金矿业',
+      mainInflow: 3000,
+      mainOutflow: 1000,
+      mainNet: 2000,
+      mainNetRatio: 20,
+      retailInflow: 800,
+      retailOutflow: 1200,
+      retailNet: -400,
+      retailNetRatio: -4,
+      totalFlow: 10000,
+      date: '20240514',
+    });
+    expect(result[0].timestamp).toBe(1715679000000);
+    expect(result[0].tz).toBe('Asia/Shanghai');
+  });
+
+  it('skips codes with no Eastmoney realtime payload', async () => {
+    server.use(http.get(REALTIME_FFLOW_URL, () => HttpResponse.json({ data: null })));
+    await expect(sdk.quotes.fundFlow(['601899'])).resolves.toEqual([]);
+  });
+});
 
 describe('FundFlow - getIndividualFundFlow', () => {
   const sdk = new StockSDK();

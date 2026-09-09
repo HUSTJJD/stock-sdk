@@ -11,6 +11,16 @@
 }
 ```
 
+默认只启用 26 个高频工具。若要暴露全部 92 个 MCP 工具，在客户端配置中加入环境变量：
+
+```jsonc
+{
+  "command": "npx",
+  "args": ["-y", "stock-sdk", "mcp"],
+  "env": { "STOCK_SDK_MCP_TOOLS": "full" }
+}
+```
+
 > 也可以先 `npm install -g stock-sdk`，再把 `command` 直接写成 `"stock-sdk"`、`args` 写成 `["mcp"]`，省去每次 `npx` 解析的开销。
 
 ## Cursor

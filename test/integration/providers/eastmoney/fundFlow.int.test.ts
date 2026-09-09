@@ -7,6 +7,27 @@ import StockSDK from '../../../../src/index';
 
 const sdk = new StockSDK();
 
+describe('Eastmoney - Realtime Fund Flow', () => {
+  it('应获取 601899 和 000938 的实时资金流快照', async () => {
+    const flow = await sdk.quotes.fundFlow(['601899', '000938']);
+    expect(flow.length).toBeGreaterThan(0);
+    expect(flow.map((item) => item.code)).toEqual(
+      expect.arrayContaining(['601899', '000938'])
+    );
+
+    for (const item of flow) {
+      expect(item.name).toBeTruthy();
+      expect(Number.isFinite(item.mainNet)).toBe(true);
+      expect(Number.isFinite(item.retailNet)).toBe(true);
+      expect(Number.isFinite(item.totalFlow)).toBe(true);
+    }
+  }, 30_000);
+
+  it('空代码返回空数组', async () => {
+    await expect(sdk.quotes.fundFlow([])).resolves.toEqual([]);
+  });
+});
+
 describe('Eastmoney - Individual Fund Flow', () => {
   it('应获取贵州茅台日线资金流', async () => {
     const flow = await sdk.fundFlow.individual('sh600519');

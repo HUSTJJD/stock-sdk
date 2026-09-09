@@ -1,6 +1,7 @@
 /**
  * 东方财富 - 资金流向
  * 数据来源：
+ *   - 个股实时资金流: https://push2delay.eastmoney.com/api/qt/stock/get
  *   - 个股/板块资金流历史: https://push2his.eastmoney.com/api/qt/stock/fflow/daykline/get
  *   - 资金流排名:           https://push2.eastmoney.com/api/qt/clist/get
  */
@@ -8,6 +9,11 @@ import {
   type RequestClient,
   EM_FFLOW_URL,
   EM_CLIST_URL,
+  EM_PUSH_TOKEN,
+  EM_REALTIME_FFLOW_URL,
+  asyncPool,
+  formatInTz,
+  MARKET_TZ,
   EM_DATA_TOKEN,
   toNumber,
   toNumberSafe,
@@ -15,12 +21,13 @@ import {
 } from '../../core';
 import { fetchPagesInWaves } from './utils';
 import type {
+  FundFlow,
   StockFundFlowDaily,
   FundFlowRankItem,
   SectorFundFlowItem,
   MarketFundFlow,
 } from '../../types';
-import { normalizeSymbol, toEastmoneySecid } from '../../symbols';
+import { normalizeSymbol, toEastmoneySecid, tryToTencentSymbols } from '../../symbols';
 import { lookupSpecialIndex } from '../../symbols/specialIndex';
 import { InvalidSymbolError } from '../../core/errors';
 
@@ -52,6 +59,96 @@ const PERIOD_KLT_MAP: Record<NonNullable<FundFlowOptions['period']>, string> = {
  * f62:收盘价 f63:涨跌幅 f64,f65:其他指数字段（板块/大盘场景使用）
  */
 const FFLOW_FIELDS_2 = 'f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61,f62,f63,f64,f65';
+
+/** 实时资金流接口需要的个股行情扩展字段。 */
+const REALTIME_FFLOW_FIELDS =
+  'f48,f57,f58,f86,f135,f136,f137,f138,f139,f140,f141,f142,f143,f144,f145,f146,f147,f148,f149';
+
+interface RealtimeFundFlowResponse {
+  data?: Record<string, unknown> | null;
+}
+
+function numericField(data: Record<string, unknown>, field: string): number {
+  return toNumberSafe(data[field]) ?? 0;
+}
+
+/**
+ * 东方财富实时资金流字段映射：
+ * f135~f137 主力流入/流出/净额；
+ * f138~f140 超大单；f141~f143 大单；f144~f146 中单；f147~f149 小单。
+ *
+ * FundFlow 是历史腾讯接口的兼容结构，金额继续以万元返回；净占比由净额/成交额
+ * 计算，避免依赖不同接口中语义不稳定的 f184 字段。
+ */
+function parseRealtimeFundFlow(data: Record<string, unknown>): FundFlow {
+  const scale = 10_000;
+  const turnover = numericField(data, 'f48');
+  const mainInflow = numericField(data, 'f135');
+  const mainOutflow = numericField(data, 'f136');
+  const mainNet = numericField(data, 'f137');
+  const retailInflow = numericField(data, 'f147');
+  const retailOutflow = numericField(data, 'f148');
+  const retailNet = numericField(data, 'f149');
+  const ratio = (net: number): number => (turnover > 0 ? (net / turnover) * 100 : 0);
+  const timestampSeconds = toNumberSafe(data.f86);
+  const timestamp =
+    timestampSeconds !== null && timestampSeconds > 0 ? timestampSeconds * 1000 : null;
+  const localDateTime = timestamp === null ? '' : formatInTz(timestamp, MARKET_TZ.CN);
+
+  return {
+    code: String(data.f57 ?? ''),
+    mainInflow: mainInflow / scale,
+    mainOutflow: mainOutflow / scale,
+    mainNet: mainNet / scale,
+    mainNetRatio: ratio(mainNet),
+    retailInflow: retailInflow / scale,
+    retailOutflow: retailOutflow / scale,
+    retailNet: retailNet / scale,
+    retailNetRatio: ratio(retailNet),
+    totalFlow: turnover / scale,
+    name: String(data.f58 ?? ''),
+    date: localDateTime ? localDateTime.slice(0, 10).replace(/-/g, '') : '',
+    timestamp,
+    tz: MARKET_TZ.CN,
+  };
+}
+
+/**
+ * 获取 A 股个股实时资金流（东方财富）。
+ *
+ * 腾讯原 `ff_` 行情键已停止返回数据，改用东方财富个股行情扩展字段；请求按代码
+ * 并发执行，因为 `stock/get` 的 `secid` 参数是单标的而非批量参数。
+ * @param client - 请求客户端
+ * @param codes - A 股代码数组，支持裸码与 sh/sz/bj 前缀
+ * @returns 实时资金流快照；无法映射或上游无数据的代码跳过
+ */
+export async function getRealtimeFundFlow(
+  client: RequestClient,
+  codes: string[]
+): Promise<FundFlow[]> {
+  if (!codes || codes.length === 0) return [];
+
+  const { keys } = tryToTencentSymbols(codes, 'CN');
+  if (keys.length === 0) return [];
+
+  const tasks = keys.map((key) => async () => {
+    const ns = normalizeSymbol(key, { market: 'CN' });
+    const secid = toEastmoneySecid(ns);
+    const params = new URLSearchParams({
+      secid,
+      fields: REALTIME_FFLOW_FIELDS,
+      ut: EM_PUSH_TOKEN,
+      invt: '2',
+      fltt: '2',
+    });
+    const url = `${EM_REALTIME_FFLOW_URL}?${params.toString()}`;
+    const json = await client.get<RealtimeFundFlowResponse>(url, { responseType: 'json' });
+    return json?.data ? parseRealtimeFundFlow(json.data) : null;
+  });
+
+  const rows = await asyncPool(tasks, 5, true);
+  return rows.filter((row): row is FundFlow => row !== null);
+}
 
 /**
  * fflow daykline 标准响应结构

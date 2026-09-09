@@ -125,7 +125,7 @@ Cursor / Claude Desktop 等配置 `mcpServers`：`{ "command": "npx", "args": ["
     - `codes` (string[], 必填): 代码数组（string[]），如 ['600519', 'sh000001']；单代码可写 ['600519']
 - **`sdk.quotes.fund(codes)`** — 获取公募基金行情（场内 / 场外，净值类）。
     - `codes` (string[], 必填): 代码数组（string[]），如 ['600519', 'sh000001']；单代码可写 ['600519']
-- **`sdk.quotes.fundFlow(codes)`** — 获取资金流向（简版，按代码批量）。
+- **`sdk.quotes.fundFlow(codes)`** — 获取 A 股实时资金流向快照（东方财富，按代码批量）：主力/小单流入、流出、净额及占比。
     - `codes` (string[], 必填): 代码数组（string[]），如 ['600519', 'sh000001']；单代码可写 ['600519']
 - **`sdk.quotes.largeOrder(codes)`** — 获取盘口大单占比。
     - `codes` (string[], 必填): 代码数组（string[]），如 ['600519', 'sh000001']；单代码可写 ['600519']
@@ -766,7 +766,7 @@ export interface FundFlow {
   name: string;
   /** 数据日期(原始字符串,A 股时区) */
   date: string;
-  /** 数据日期对应当日 00:00 (`Asia/Shanghai`) 的 UTC 毫秒时间戳;无法解析时为 `null` */
+  /** 数据更新时间的 UTC 毫秒时间戳；仅有日期时为当日 00:00 (`Asia/Shanghai`)，无法解析时为 `null` */
   timestamp: number | null;
   /** 数据日期所属时区 (`Asia/Shanghai`) */
   tz: MarketTz;}
