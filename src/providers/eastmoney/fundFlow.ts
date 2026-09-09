@@ -1,7 +1,7 @@
 /**
  * 东方财富 - 资金流向
  * 数据来源：
- *   - 个股实时资金流: https://push2.eastmoney.com/api/qt/stock/get
+ *   - 个股实时资金流: https://push2delay.eastmoney.com/api/qt/stock/get
  *   - 个股/板块资金流历史: https://push2his.eastmoney.com/api/qt/stock/fflow/daykline/get
  *   - 资金流排名:           https://push2.eastmoney.com/api/qt/clist/get
  */

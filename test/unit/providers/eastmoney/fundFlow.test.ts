@@ -4,8 +4,7 @@ import { server } from '../../../mocks/server';
 import StockSDK from '../../../../src/index';
 
 const FFLOW_URL = 'https://push2his.eastmoney.com/api/qt/stock/fflow/daykline/get';
-// RequestClient 会把 push2 请求路由到 17/29/79/91 等备用子域。
-const REALTIME_FFLOW_URL = 'https://*.push2.eastmoney.com/api/qt/stock/get';
+const REALTIME_FFLOW_URL = 'https://push2delay.eastmoney.com/api/qt/stock/get';
 const CLIST_URL = 'https://*.push2.eastmoney.com/api/qt/clist/get';
 
 describe('FundFlow - getRealtimeFundFlow', () => {
