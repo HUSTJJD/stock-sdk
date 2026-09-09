@@ -18,11 +18,11 @@ const list = await sdk.quotes.cn(['600519', '000001'])
 | `quotes.hk(codes)` | 港股行情 |
 | `quotes.us(codes)` | 美股行情 |
 | `quotes.fund(codes)` | 基金行情（单位净值 / 累计净值） |
-| `quotes.fundFlow(codes)` | 资金流向（简版，腾讯源） |
+| `quotes.fundFlow(codes)` | 资金流向（简版实时快照，东方财富源） |
 | `quotes.largeOrder(codes)` | 盘口大单 |
 | `quotes.timeline(code)` | 当日分时 |
 
-> **`quotes.fundFlow` vs `sdk.fundFlow.*`**：前者是简版资金流（腾讯源，随行情快照返回）；后者是深度资金流（东财源，含个股 / 大盘 / 排名 / 板块历史）。两者数据来源与维度不同，见 [fundFlow](/api/fund-flow)。
+> **`quotes.fundFlow` vs `sdk.fundFlow.*`**：前者是简版实时资金流快照（东方财富源，按代码返回主力/小单流入流出及净额）；后者是深度资金流（东财源，含个股 / 大盘 / 排名 / 板块历史）。两者维度不同，见 [fundFlow](/api/fund-flow)。
 
 ## 调用示例
 

@@ -522,7 +522,8 @@ export const METHOD_SPECS: MethodSpec[] = [
     path: ['quotes', 'fundFlow'],
     toolName: 'get_fund_flow',
     summary: '资金流向(简版)',
-    mcpDesc: '获取资金流向（简版，按代码批量）。',
+    mcpDesc:
+      '获取 A 股实时资金流向快照（东方财富，按代码批量）：主力/小单流入、流出、净额及占比。',
     argShape: 'codes[]',
     codesDesc:
       'A 股代码数组，带不带 sh/sz/bj 前缀均可（如 600036 / sz000858）',

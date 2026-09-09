@@ -18,11 +18,11 @@ const list = await sdk.quotes.cn(['600519', '000001'])
 | `quotes.hk(codes)` | HK quotes |
 | `quotes.us(codes)` | US quotes |
 | `quotes.fund(codes)` | Fund quotes (unit NAV / accumulated NAV) |
-| `quotes.fundFlow(codes)` | Fund flow (simple, Tencent source) |
+| `quotes.fundFlow(codes)` | Real-time fund-flow snapshot (simple, Eastmoney source) |
 | `quotes.largeOrder(codes)` | Large orders |
 | `quotes.timeline(code)` | Intraday timeline |
 
-> **`quotes.fundFlow` vs `sdk.fundFlow.*`**: the former is the simple fund flow (Tencent source, returned with the quote snapshot); the latter is the deep fund flow (Eastmoney source, with individual / market / rank / sector history). They differ in source and dimensions — see [fundFlow](/en/api/fund-flow).
+> **`quotes.fundFlow` vs `sdk.fundFlow.*`**: the former is a simple real-time fund-flow snapshot (Eastmoney source, with main/small-order inflow, outflow and net amounts); the latter is the deep fund flow (Eastmoney source, with individual / market / rank / sector history). They differ in dimensions — see [fundFlow](/en/api/fund-flow).
 
 ## Examples
 

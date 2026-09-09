@@ -135,7 +135,7 @@ export interface FundFlow {
   name: string;
   /** 数据日期(原始字符串,A 股时区) */
   date: string;
-  /** 数据日期对应当日 00:00 (`Asia/Shanghai`) 的 UTC 毫秒时间戳;无法解析时为 `null` */
+  /** 数据更新时间的 UTC 毫秒时间戳；仅有日期时为当日 00:00 (`Asia/Shanghai`)，无法解析时为 `null` */
   timestamp: number | null;
   /** 数据日期所属时区 (`Asia/Shanghai`) */
   tz: MarketTz;}

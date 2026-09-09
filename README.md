@@ -155,6 +155,20 @@ npx stock-sdk mcp
 
 环境变量 `STOCK_SDK_MCP_TOOLS=core|full|<逗号分隔工具名>` 控制工具集范围（默认 `core`）。
 
+要通过 `npx` 暴露全部 92 个 MCP 工具，在配置中加入 `env`：
+
+```json
+{
+  "mcpServers": {
+    "stock-sdk": {
+      "command": "npx",
+      "args": ["-y", "stock-sdk", "mcp"],
+      "env": { "STOCK_SDK_MCP_TOOLS": "full" }
+    }
+  }
+}
+```
+
 除工具外还内置 **7 个场景化 AI Skills**（MCP Prompts，如 `analyze_stock` / `screen_stocks` / `diagnose_stock`），支持的客户端可一键触发；`STOCK_SDK_MCP_PROMPTS=core|full|<名单>` 控制技能集（默认 `core`）。详见 [AI Skills 文档](https://stock-sdk.linkdiary.cn/skills/)。
 
 👉 [完整 MCP 文档](https://stock-sdk.linkdiary.cn/mcp/)
@@ -284,6 +298,8 @@ import { SdkError, isSdkError, getSdkErrorCode } from 'stock-sdk/errors';
 | `sdk.calendar` | `.isTradingDay` / `.nextTradingDay` / `.prevTradingDay` / `.marketStatus` |
 | `sdk.reference` | `.dividendDetail` / `.tradingCalendar` |
 | 顶层 | `sdk.search(keyword)` |
+
+其中 `sdk.quotes.fundFlow(codes)` 提供东方财富源的 A 股实时资金流快照，按代码返回主力与小单流入、流出、净额及占比；历史、排名和板块资金流使用 `sdk.fundFlow.*`。
 
 > 指标计算从主包改为 subpath：`import { calcMACD } from 'stock-sdk/indicators'`。
 > 从 v1 扁平 API 迁移？见 [v1 → v2 迁移指南](https://stock-sdk.linkdiary.cn/guide/migration-v1-to-v2)（含完整 `sdk.getXxx()` → `sdk.<ns>.<method>()` 映射表）。

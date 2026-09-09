@@ -11,6 +11,16 @@ The examples below launch via `npx` (no pre-install needed; `-y` skips the inter
 }
 ```
 
+The default starts 26 high-frequency tools. To expose all 92 MCP tools, add the environment variable:
+
+```jsonc
+{
+  "command": "npx",
+  "args": ["-y", "stock-sdk", "mcp"],
+  "env": { "STOCK_SDK_MCP_TOOLS": "full" }
+}
+```
+
 > You can also `npm install -g stock-sdk` first, then set `command` to `"stock-sdk"` and `args` to `["mcp"]`, saving the `npx` resolution cost on each start.
 
 ## Cursor
