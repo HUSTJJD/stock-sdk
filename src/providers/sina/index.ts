@@ -2,6 +2,14 @@
  * 新浪财经数据源
  */
 
+// A 股 K 线备用源
+export {
+  getSinaHistoryKline,
+  getSinaMinuteKline,
+  type SinaHistoryKlineOptions,
+  type SinaMinuteKlineOptions,
+} from './kline';
+
 // 中金所股指期权
 export { getIndexOptionSpot, getIndexOptionKline } from './optionIndex';
 

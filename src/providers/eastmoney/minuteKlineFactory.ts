@@ -21,6 +21,8 @@ import {
   formatInTz,
   toNumber,
   type MarketTz,
+  type GetOptions,
+  UpstreamEmptyError,
 } from '../../core';
 import type { MinuteTimeline, MinuteKline } from '../../types';
 import {
@@ -124,6 +126,10 @@ export interface MinuteKlineProviderConfig<
     | { mode: 'full'; beg: string; end: string };
   /** kline 分支额外参数(板块的 smplmt/lmt) */
   extraKlineParams?: Record<string, string>;
+  /** kline 分支单次请求治理覆盖（用于快速探测后切换多源备用）。 */
+  klineRequestOptions?: Pick<GetOptions, 'retry' | 'hostFallback'>;
+  /** data:null 时抛出 UPSTREAM_EMPTY，而不是与合法空 klines 混为一谈。 */
+  requireKlineData?: boolean;
 }
 
 type OverseasRow<T, C extends string> = Omit<T, 'tz'> & {
@@ -269,7 +275,20 @@ export function createMinuteKlineProvider<
       end: serverWindow.end,
       ...(config.extraKlineParams ?? {}),
     });
-    const { klines } = await fetchEmHistoryKline(client, config.klineUrl, params);
+    const response = await fetchEmHistoryKline(
+      client,
+      config.klineUrl,
+      params,
+      config.klineRequestOptions
+    );
+    if (config.requireKlineData && !response.dataPresent) {
+      throw new UpstreamEmptyError(
+        'Eastmoney minute K-line response has no data payload',
+        'eastmoney',
+        config.klineUrl
+      );
+    }
+    const klines = response.klines;
     if (!Array.isArray(klines) || klines.length === 0) {
       return [];
     }

@@ -46,6 +46,25 @@ describe('RequestClient provider policies', () => {
     expect(callCount).toBe(2);
   });
 
+  it('should allow one call to disable retries and host fallback', async () => {
+    const visited: string[] = [];
+    globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+      visited.push(url);
+      return Promise.reject(new TypeError('socket closed'));
+    });
+
+    const client = new RequestClient({ retry: { maxRetries: 3, baseDelay: 1 } });
+
+    await expect(
+      client.get('https://push2his.eastmoney.com/test', {
+        retry: { maxRetries: 0 },
+        hostFallback: false,
+      })
+    ).rejects.toMatchObject({ code: 'NETWORK_ERROR' });
+
+    expect(visited).toEqual(['https://push2his.eastmoney.com/test']);
+  });
+
   it('should isolate circuit breaker state by provider', async () => {
     globalThis.fetch = vi.fn().mockImplementation((url: string) => {
       if (url.includes('eastmoney.com')) {

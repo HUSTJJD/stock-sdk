@@ -27,7 +27,9 @@ const us15 = await sdk.kline.us('AAPL', { period: '15' })
 | `kline.withIndicators(symbol, opts?)` | Historical K-line + built-in indicators (MA / MACD / KDJ, etc.) |
 | `kline.signals(symbol, opts?)` | Indicator signals over historical K-lines (golden/death crosses, overbought/oversold, breakouts, reversals — 14 types) |
 
-> Data is sourced from Eastmoney. HK / US K-lines cover regular trading hours only (no pre-/post-market).
+> Eastmoney is the primary source. Regular CN historical and 5/15/30/60-minute K-lines fall back to Tencent and then Sina when `push2his` disconnects, times out, or returns `data:null`; the 1-minute timeline keeps its existing endpoint. HK / US K-lines cover regular trading hours only (no pre-/post-market).
+>
+> Fallback sources provide OHLCV. `change`, `changePercent`, and `amplitude` are derived from adjacent closes; unavailable `amount` and `turnoverRate` fields are `null`. Tencent historical fallback supports adjustment, while the final Sina fallback and both minute fallbacks are unadjusted. Sina can return up to 10,000 daily or 5,000 minute bars in Node.js; its browser JSONP route is limited to the latest 1,023 bars. If that depth cannot cover the requested window, the SDK preserves the original Eastmoney error instead of returning incomplete data. Special CSI indices also preserve the original error when no fallback mapping exists.
 >
 > `kline.signals` chains `withIndicators` + `calcSignals` ([`stock-sdk/signals`](/en/api/signals)) and returns each signal's `type` / `date` / `close` / `detail`. `maFast` / `maSlow` (default 5 / 20) tune the MA cross periods, the rest use common default thresholds; omit `startDate` to scan full history, pass it to narrow the window.
 

@@ -23,6 +23,7 @@ import {
   inferProviderFromUrl,
   mergeProviderPolicy,
   resolveProviderPolicy,
+  resolveRetryOptions,
   type ProviderName,
   type ProviderRequestPolicy,
   type ResolvedProviderPolicy,
@@ -233,6 +234,10 @@ interface ProviderRuntimeState {
 export interface GetOptions {
   responseType?: 'text' | 'json' | 'arraybuffer';
   provider?: ProviderName;
+  /** 单次请求重试覆盖；未传时使用 provider / client 策略。 */
+  retry?: RetryOptions;
+  /** 是否启用同数据源备用 host；默认 true。 */
+  hostFallback?: boolean;
   /** 单次请求的自定义 fetch（优先级高于 client 级 fetchImpl） */
   fetchImpl?: FetchImpl;
   /** 单次请求的外部取消信号（触发后归类为 ABORTED） */
@@ -618,7 +623,13 @@ export class RequestClient {
     }
 
     const perCall = { fetchImpl: options.fetchImpl, signal: options.signal };
-    const candidateUrls = this.fallbackManager.getCandidateUrls(url, provider);
+    const retryOptions = options.retry
+      ? resolveRetryOptions({ ...state.policy.retry, ...options.retry })
+      : state.policy.retry;
+    const candidateUrls =
+      options.hostFallback === false
+        ? [url]
+        : this.fallbackManager.getCandidateUrls(url, provider);
     let lastError: RequestError | undefined;
 
     for (let index = 0; index < candidateUrls.length; index++) {
@@ -627,8 +638,8 @@ export class RequestClient {
       // 避免 (maxRetries+1) × hosts 的延迟倍乘。
       const retryForHost: ResolvedRetryOptions =
         index === 0
-          ? state.policy.retry
-          : { ...state.policy.retry, maxRetries: 0 };
+          ? retryOptions
+          : { ...retryOptions, maxRetries: 0 };
 
       try {
         const result = await this.executeWithRetry(
