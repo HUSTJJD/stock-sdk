@@ -163,24 +163,14 @@ async function fetchPage(
   return parseRows(node[resultKey(period, adjust)] ?? node[periodParam]);
 }
 
-/**
- * 从腾讯备用源获取 A 股历史 K 线。
- *
- * 腾讯单次最多返回约 640 根，函数按最早一根日期向前翻页，并额外取一根窗口前
- * 数据用于计算首根的涨跌额/涨跌幅/振幅。
- */
-export async function getTencentHistoryKline(
+async function fetchAllPages(
   client: RequestClient,
-  symbol: string,
-  options: TencentHistoryKlineOptions = {}
-): Promise<HistoryKline[]> {
-  const period = options.period ?? 'daily';
-  const adjust = options.adjust ?? 'qfq';
-  const requestedStart = toIsoDate(options.startDate ?? '19700101');
-  const requestedEnd = toIsoDate(options.endDate ?? '20500101');
-  const queryStart = addDays(requestedStart, -queryLookbackDays(period));
-  const ns = normalizeSymbol(symbol, { market: 'CN' });
-  const tencentSymbol = toTencentSymbol(ns);
+  tencentSymbol: string,
+  period: NonNullable<TencentHistoryKlineOptions['period']>,
+  adjust: NonNullable<TencentHistoryKlineOptions['adjust']>,
+  queryStart: string,
+  requestedEnd: string
+): Promise<TencentKlineRawRow[]> {
   const byDate = new Map<string, TencentKlineRawRow>();
   let cursorEnd = requestedEnd;
 
@@ -203,7 +193,83 @@ export async function getTencentHistoryKline(
     await new Promise<void>((resolve) => setTimeout(resolve, 100));
   }
 
-  const rows = [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
+  return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
+}
+
+async function scaleHfqToQfq(
+  client: RequestClient,
+  tencentSymbol: string,
+  period: NonNullable<TencentHistoryKlineOptions['period']>,
+  rows: TencentKlineRawRow[]
+): Promise<TencentKlineRawRow[]> {
+  const anchor = [...rows].reverse().find((row) => row.close !== null && row.close !== 0);
+  if (!anchor) {
+    throw new UpstreamEmptyError(
+      'Tencent hfq series has no usable close for qfq rescaling',
+      'tencent'
+    );
+  }
+
+  const rawRows = await fetchPage(
+    client,
+    tencentSymbol,
+    period,
+    '',
+    addDays(anchor.date, -queryLookbackDays(period)),
+    anchor.date
+  );
+  const rawAnchor = rawRows.find((row) => row.date === anchor.date);
+  if (!rawAnchor || rawAnchor.close === null) {
+    throw new UpstreamEmptyError(
+      `Tencent unadjusted anchor missing for ${anchor.date}; cannot derive qfq`,
+      'tencent'
+    );
+  }
+
+  const scale = rawAnchor.close / (anchor.close as number);
+  const apply = (value: number | null): number | null =>
+    value === null ? null : roundPrice(value * scale);
+
+  return rows.map((row) => ({
+    ...row,
+    open: apply(row.open),
+    close: apply(row.close),
+    high: apply(row.high),
+    low: apply(row.low),
+  }));
+}
+
+/**
+ * 从腾讯备用源获取 A 股历史 K 线。
+ *
+ * 腾讯单次最多返回约 640 根，函数按最早一根日期向前翻页，并额外取一根窗口前
+ * 数据用于计算首根的涨跌额/涨跌幅/振幅。
+ */
+export async function getTencentHistoryKline(
+  client: RequestClient,
+  symbol: string,
+  options: TencentHistoryKlineOptions = {}
+): Promise<HistoryKline[]> {
+  const period = options.period ?? 'daily';
+  const adjust = options.adjust ?? 'qfq';
+  const requestedStart = toIsoDate(options.startDate ?? '19700101');
+  const requestedEnd = toIsoDate(options.endDate ?? '20500101');
+  const queryStart = addDays(requestedStart, -queryLookbackDays(period));
+  const ns = normalizeSymbol(symbol, { market: 'CN' });
+  const tencentSymbol = toTencentSymbol(ns);
+
+  const fetchAdjust = adjust === 'qfq' ? 'hfq' : adjust;
+  let rows = await fetchAllPages(
+    client,
+    tencentSymbol,
+    period,
+    fetchAdjust,
+    queryStart,
+    requestedEnd
+  );
+  if (adjust === 'qfq' && rows.length > 0) {
+    rows = await scaleHfqToQfq(client, tencentSymbol, period, rows);
+  }
   const result: HistoryKline[] = rows.map((row, index) => {
     const prevClose = index > 0 ? rows[index - 1].close : null;
     const change =

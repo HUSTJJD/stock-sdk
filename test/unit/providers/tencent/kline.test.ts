@@ -18,7 +18,9 @@ function tencentPayload(rows: unknown[][]): Record<string, unknown> {
     msg: '',
     data: {
       sh600519: {
+        hfqday: rows,
         qfqday: rows,
+        day: rows,
       },
     },
   };
@@ -33,8 +35,13 @@ describe('A-share K-line provider fallback', () => {
         return HttpResponse.error();
       }),
       http.get(TENCENT_KLINE_URL, ({ request }) => {
-        const param = new URL(request.url).searchParams.get('param');
-        expect(param).toContain('sh600519,day,2024-05-03,2024-05-14,640,qfq');
+        const param = new URL(request.url).searchParams.get('param') ?? '';
+        if (param.endsWith(',hfq')) {
+          expect(param).toContain('sh600519,day,2024-05-03,2024-05-14,640,hfq');
+        } else {
+          expect(param).toContain('sh600519,day,');
+          expect(param.endsWith(',')).toBe(true);
+        }
         return HttpResponse.json(
           tencentPayload([
             ['2024-05-10', '10', '11', '12', '9', '100'],
@@ -65,6 +72,50 @@ describe('A-share K-line provider fallback', () => {
       turnoverRate: null,
     });
     expect(result[0].tz).toBe('Asia/Shanghai');
+  });
+
+  it('qfq 取 hfq 序列并按末根不复权价缩放,不使用会出负价的 qfqday', async () => {
+    const requested: string[] = [];
+    server.use(
+      http.get(EASTMONEY_KLINE_URL, () => HttpResponse.error()),
+      http.get(TENCENT_KLINE_URL, ({ request }) => {
+        const param = new URL(request.url).searchParams.get('param') ?? '';
+        const adjust = param.split(',')[5] ?? '';
+        requested.push(adjust);
+        if (adjust === 'hfq') {
+          return HttpResponse.json({
+            code: 0,
+            data: {
+              sh600519: {
+                hfqday: [
+                  ['2024-05-13', '200', '400', '400', '200', '110'],
+                  ['2024-05-14', '400', '800', '800', '400', '120'],
+                ],
+                qfqday: [
+                  ['2024-05-13', '-50', '-40', '-40', '-50', '110'],
+                  ['2024-05-14', '-40', '10', '10', '-40', '120'],
+                ],
+              },
+            },
+          });
+        }
+        return HttpResponse.json({
+          code: 0,
+          data: { sh600519: { day: [['2024-05-14', '5', '10', '10', '5', '120']] } },
+        });
+      })
+    );
+
+    const result = await new StockSDK().kline.cn('600519', {
+      startDate: '20240513',
+      endDate: '20240514',
+      adjust: 'qfq',
+    });
+
+    expect(requested).toEqual(['hfq', '']);
+    expect(result.map((row) => row.close)).toEqual([5, 10]);
+    expect(result.every((row) => (row.close ?? 0) > 0)).toBe(true);
+    expect(result[1].changePercent).toBe(100);
   });
 
   it('treats Eastmoney data:null as soft limiting and uses Tencent', async () => {
