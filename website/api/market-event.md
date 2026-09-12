@@ -11,6 +11,7 @@
 | `marketEvent.boardChanges()` | 当日板块异动详情 |
 | `marketEvent.individualChanges(symbol, opts?)` | 个股某交易日的异动事件流（全类型） |
 | `marketEvent.individualChangesHistory(symbol, opts?)` | 个股近 N 天异动历史（逐交易日聚合 + 覆盖标注 + 类型计数） |
+| `marketEvent.unusualFluctuation(opts?)` | 监管异动：交易所股票交易异常波动预警（已触发 / 逼近阈值） |
 
 > 具体参数与返回字段以最终实现为准；下方字段表反映当前数据契约。
 
@@ -288,3 +289,54 @@ interface BoardChangeItem {
   changeTypeDistribution: Record<string, number>; // 异动类型分布（key 为类型代码，value 为次数）
 }
 ```
+
+## marketEvent.unusualFluctuation
+
+获取交易所「股票交易异常波动」监管预警：哪些个股**已触发**、哪些正在**逼近**触发阈值。
+
+```ts
+const today = await sdk.marketEvent.unusualFluctuation({ date: '20260911' })
+const hit = await sdk.marketEvent.unusualFluctuation({ date: '20260911', triggered: true })
+const range = await sdk.marketEvent.unusualFluctuation({
+  startDate: '20260901',
+  endDate: '20260911',
+})
+```
+
+### 参数
+
+| 参数 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `date` | `string` | 否 | 指定交易日 `YYYYMMDD` / `YYYY-MM-DD`；与 `startDate`/`endDate` **互斥** |
+| `startDate` | `string` | 否 | 起始交易日 |
+| `endDate` | `string` | 否 | 结束交易日 |
+| `triggered` | `boolean` | 否 | `true` 仅已触发，`false` 仅逼近未触发；缺省返回全部 |
+
+三个日期参数全部缺省时返回上游全部留存数据（约两个月、数千条），建议按需收窄。
+
+### 返回说明
+
+```ts
+interface UnusualFluctuationItem {
+  code: string;                  // 股票代码
+  name: string;                  // 股票名称
+  date: string;                  // 交易日 YYYY-MM-DD
+  timestamp: number | null;      // 交易日 00:00 (Asia/Shanghai) 的 UTC 毫秒
+  tz: MarketTz;
+  rule: string;                  // 规则原文，如「连续十个交易日内日收盘价涨跌幅偏离值累计达到+100%」
+  triggered: boolean;            // 是否已触发（false = 逼近阈值但未触发）
+  deviationValue: number | null; // 累计涨跌幅偏离值(%)，与规则阈值同口径
+  windowDays: number | null;     // 规则统计窗口天数
+  changePercent: number | null;  // 当日涨跌幅(%)
+  direction: 'up' | 'down';      // 异动方向
+  targetChangePercent: number | null; // 上游 CHANGE_RATE_TARGET 原值(%)
+}
+```
+
+::: warning 盘后数据
+交易所异常波动为**日频盘后数据**，收盘后统计发布，盘中查询当天可能无数据，属正常时效。
+:::
+
+::: tip triggered 的含义
+`triggered: false` 不代表"没问题"——它表示该股**正在逼近**监管阈值（如偏离值已累计 97.66%、阈值 100%），正是提前预警的用途。`deviationValue` 与 `rule` 中的阈值可直接比较。
+:::

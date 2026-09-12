@@ -19,7 +19,7 @@
 | Boards | `sdk.board.industry.*` / `sdk.board.concept.*` | Industry / concept board list, spot, constituents, K-line |
 | Fund flow | `sdk.fundFlow.individual` / `market` / `rank` / `sectorRank` | Stock / market / rank / sector fund flow |
 | Northbound | `sdk.northbound.minute` / `summary` / `holdingRank` / `individual` | Stock Connect / northbound capital |
-| Market events | `sdk.marketEvent.ztPool` / `stockChanges` / `boardChanges` | Limit-up pool / stock changes / board changes |
+| Market events | `sdk.marketEvent.ztPool` / `stockChanges` / `boardChanges` / `unusualFluctuation` | Limit-up pool / stock changes / board changes / regulatory fluctuation alerts |
 | Dragon-Tiger | `sdk.dragonTiger.detail` / `stockStats` / `institution` / `branchRank` | Dragon-Tiger list details and stats |
 | Block trade | `sdk.blockTrade.marketStat` / `detail` / `dailyStat` | Block-trade stats and details |
 | Margin | `sdk.margin.accountInfo` / `targetList` | Margin account info and target list |
