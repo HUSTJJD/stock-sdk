@@ -11,6 +11,7 @@
 | `marketEvent.individualChanges(symbol, opts?)` | Single stock's change-event stream for one trading day (all types) |
 | `marketEvent.individualChangesHistory(symbol, opts?)` | Single stock's changes over the last N days (per-day aggregation + coverage + stats) |
 | `marketEvent.boardChanges()` | Sector-change details for the day |
+| `marketEvent.unusualFluctuation(opts?)` | Regulatory abnormal price fluctuation alerts (triggered / approaching) |
 
 > Exact parameters and return fields follow the final implementation; the field tables below reflect the current data contract.
 
@@ -276,3 +277,54 @@ interface BoardChangeItem {
   changeTypeDistribution: Record<string, number>; // change-type distribution (type code -> count)
 }
 ```
+
+## marketEvent.unusualFluctuation
+
+Exchange "abnormal price fluctuation" regulatory alerts: which stocks have **already triggered** a rule, and which are **approaching** the threshold.
+
+```ts
+const today = await sdk.marketEvent.unusualFluctuation({ date: '20260911' })
+const hit = await sdk.marketEvent.unusualFluctuation({ date: '20260911', triggered: true })
+const range = await sdk.marketEvent.unusualFluctuation({
+  startDate: '20260901',
+  endDate: '20260911',
+})
+```
+
+### Parameters
+
+| Param | Type | Required | Description |
+|---|---|---|---|
+| `date` | `string` | No | Trading day `YYYYMMDD` / `YYYY-MM-DD`; **mutually exclusive** with `startDate`/`endDate` |
+| `startDate` | `string` | No | Range start |
+| `endDate` | `string` | No | Range end |
+| `triggered` | `boolean` | No | `true` = only triggered, `false` = only approaching; omit for both |
+
+With all date params omitted the upstream's full retention window is returned (roughly two months, thousands of rows) — narrow it down in practice.
+
+### Returns
+
+```ts
+interface UnusualFluctuationItem {
+  code: string;                  // stock code
+  name: string;                  // stock name
+  date: string;                  // trading day YYYY-MM-DD
+  timestamp: number | null;      // UTC ms of 00:00 (Asia/Shanghai) on that day
+  tz: MarketTz;
+  rule: string;                  // rule text, e.g. cumulative deviation reaching +100% over 10 sessions
+  triggered: boolean;            // already triggered (false = approaching the threshold)
+  deviationValue: number | null; // cumulative price-change deviation (%), same basis as the rule
+  windowDays: number | null;     // rule window length in trading days
+  changePercent: number | null;  // that day's change (%)
+  direction: 'up' | 'down';      // fluctuation direction
+  targetChangePercent: number | null; // upstream CHANGE_RATE_TARGET value (%)
+}
+```
+
+::: warning Post-close data
+Abnormal-fluctuation records are daily, post-close data: they are compiled after the close, so an intraday query for today may return nothing. That is the source's normal timing.
+:::
+
+::: tip What `triggered: false` means
+`triggered: false` does not mean "fine" — it means the stock is **approaching** a regulatory threshold (e.g. cumulative deviation at 97.66% against a 100% threshold), which is exactly the early-warning use case. Compare `deviationValue` against the threshold stated in `rule`.
+:::

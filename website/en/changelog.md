@@ -6,6 +6,19 @@ pageClass: changelog-page
 
 This page records the release history of Stock SDK. v2.0.0 is an **architectural leap** — without adding data sources, it reworks the symbol model, data contract, API surface, request layer, and error system, and adds a CLI / MCP and subpath exports.
 
+## v2.4.4
+
+> Released: Unreleased
+
+### Added
+
+- **Regulatory fluctuation alerts `marketEvent.unusualFluctuation`** ([#76](https://github.com/chengzuopeng/stock-sdk/issues/76), thanks [@WJMA-GIT](https://github.com/WJMA-GIT)): exchange abnormal-price-fluctuation warnings with the rule text, triggered flag, cumulative deviation and direction; `triggered` narrows to already-triggered or approaching stocks. CLI and the MCP tool `get_unusual_fluctuation` are derived alongside.
+
+### Fixed
+
+- **A-share K-lines fall back when Eastmoney is limited** ([#75](https://github.com/chengzuopeng/stock-sdk/pull/75), thanks [@run-bigpig](https://github.com/run-bigpig)): when `push2his` drops the connection or returns `data:null`, the SDK now falls back through Tencent and Sina, benefiting `kline.cn` / `cnMinute` / `withIndicators`.
+- **Negative forward-adjusted prices from the Tencent fallback**: Tencent's `qfqday` yields negative prices for long-history high-growth symbols (measured: ~59% of sh600519 closes). Forward-adjusted series are now derived from the hfq series, linearly rescaled to the last unadjusted close. qfq is the default adjustment and the failure was silent, so negative prices would have corrupted indicators and backtests.
+
 ## v2.4.3
 
 > Released: Unreleased

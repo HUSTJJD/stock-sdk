@@ -216,7 +216,8 @@
           "marketEvent.stockChanges",
           "marketEvent.boardChanges",
           "marketEvent.individualChanges",
-          "marketEvent.individualChangesHistory"
+          "marketEvent.individualChangesHistory",
+          "marketEvent.unusualFluctuation"
         ]
       },
       {

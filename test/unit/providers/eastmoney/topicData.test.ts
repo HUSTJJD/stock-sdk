@@ -392,6 +392,97 @@ describe('TopicData - getIndividualStockChanges(个股按日异动)', () => {
   });
 });
 
+describe('TopicData - getUnusualFluctuation(监管异动)', () => {
+  const sdk = new StockSDK();
+  const DC_URL = 'https://datacenter-web.eastmoney.com/api/data/v1/get';
+
+  function dcPayload(rows: Record<string, unknown>[]) {
+    return { success: true, code: 0, result: { data: rows, count: rows.length, pages: 1 } };
+  }
+
+  it('解析真实上游样本:规则原文/触发标记/偏离值/方向', async () => {
+    let captured = '';
+    server.use(
+      http.get(DC_URL, ({ request }) => {
+        captured = new URL(request.url).searchParams.get('filter') ?? '';
+        return HttpResponse.json(
+          dcPayload([
+            {
+              SECURITY_CODE: '601086',
+              SECURITY_NAME_ABBR: '国芳集团',
+              TRADE_DATE: '2026-09-11 00:00:00',
+              UNUSUAL_TYPE: '连续十个交易日内日收盘价涨跌幅偏离值累计达到+100%',
+              IS_HAPPEN: '0',
+              IS_POSITIVE: '1',
+              DEVUATION_VALUE: 97.66,
+              MAX_DAYS: 10,
+              CHANGE_RATE: 8.206485771013,
+              CHANGE_RATE_TARGET: 9.5,
+            },
+            {
+              SECURITY_CODE: '002102',
+              SECURITY_NAME_ABBR: '*ST萃华',
+              TRADE_DATE: '2026-09-11 00:00:00',
+              UNUSUAL_TYPE: '连续三十个交易日内日收盘价涨跌幅偏离值累计达到-70%',
+              IS_HAPPEN: '1',
+              IS_POSITIVE: '0',
+              DEVUATION_VALUE: -71.17,
+              MAX_DAYS: 30,
+              CHANGE_RATE: -9.57,
+              CHANGE_RATE_TARGET: -6.42,
+            },
+          ])
+        );
+      })
+    );
+
+    const rows = await sdk.marketEvent.unusualFluctuation({ date: '20260911' });
+    expect(captured).toContain("(TRADE_DATE='2026-09-11')");
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toEqual({
+      code: '601086',
+      name: '国芳集团',
+      date: '2026-09-11',
+      timestamp: 1789056000000,
+      tz: 'Asia/Shanghai',
+      rule: '连续十个交易日内日收盘价涨跌幅偏离值累计达到+100%',
+      triggered: false,
+      deviationValue: 97.66,
+      windowDays: 10,
+      changePercent: 8.206485771013,
+      direction: 'up',
+      targetChangePercent: 9.5,
+    });
+    expect(rows[1].triggered).toBe(true);
+    expect(rows[1].direction).toBe('down');
+  });
+
+  it('triggered 与日期区间转成 datacenter filter', async () => {
+    let captured = '';
+    server.use(
+      http.get(DC_URL, ({ request }) => {
+        captured = new URL(request.url).searchParams.get('filter') ?? '';
+        return HttpResponse.json(dcPayload([]));
+      })
+    );
+
+    await sdk.marketEvent.unusualFluctuation({
+      startDate: '20260901',
+      endDate: '2026-09-11',
+      triggered: true,
+    });
+    expect(captured).toContain("(TRADE_DATE>='2026-09-01')");
+    expect(captured).toContain("(TRADE_DATE<='2026-09-11')");
+    expect(captured).toContain('(IS_HAPPEN="1")');
+  });
+
+  it('date 与 startDate/endDate 互斥', async () => {
+    await expect(
+      sdk.marketEvent.unusualFluctuation({ date: '20260911', startDate: '20260901' })
+    ).rejects.toThrow(/不能同时指定/);
+  });
+});
+
 describe('TopicData - getBoardChanges', () => {
   const sdk = new StockSDK();
 

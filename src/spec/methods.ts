@@ -1263,6 +1263,25 @@ export const METHOD_SPECS: MethodSpec[] = [
       '异动最频繁个股（代码 / 名称 / 方向）及异动类型分布。无参。',
     argShape: 'none',
   },
+  {
+    path: ['marketEvent', 'unusualFluctuation'],
+    toolName: 'get_unusual_fluctuation',
+    summary: '监管异动(异常波动预警)',
+    mcpDesc:
+      '获取交易所「股票交易异常波动」监管预警（东方财富）：每条含代码、名称、交易日、触发规则原文' +
+      '（如「连续十个交易日内日收盘价涨跌幅偏离值累计达到+100%」）、是否已触发、累计涨跌幅偏离值(%)、' +
+      '规则窗口天数、当日涨跌幅(%)、异动方向(up/down)。' +
+      'triggered=true 仅看已触发，false 仅看逼近阈值但未触发，缺省返回全部。' +
+      'date 查单日；startDate/endDate 查区间，两者互斥；均缺省时返回上游全部留存数据（约两个月、数千条，建议收窄）。' +
+      '⏰ 日频盘后数据：收盘后统计发布，盘中查当天可能无数据，属正常时效。',
+    argShape: 'options',
+    params: [
+      { flag: 'date', type: 'string', desc: '指定交易日 YYYYMMDD 或 YYYY-MM-DD', mcpDesc: '指定交易日 YYYYMMDD 或 YYYY-MM-DD（与 startDate/endDate 互斥）' },
+      { ...START, mcpDesc: '起始交易日 YYYYMMDD 或 YYYY-MM-DD' },
+      { ...END, mcpDesc: '结束交易日 YYYYMMDD 或 YYYY-MM-DD' },
+      { flag: 'triggered', type: 'boolean', desc: '仅已触发(true)/仅未触发(false)', mcpDesc: 'true 仅返回已触发，false 仅返回逼近未触发；缺省全部' },
+    ],
+  },
   // ===== dragonTiger (5) =====
   {
     path: ['dragonTiger', 'detail'],

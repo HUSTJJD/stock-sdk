@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`R7-15②: MCP invoke 的 path / 位置参数 / options 键集快照 > 92 个 MCP 工具的调用契约与快照一致 1`] = `
+exports[`R7-15②: MCP invoke 的 path / 位置参数 / options 键集快照 > 93 个 MCP 工具的调用契约与快照一致 1`] = `
 {
   "get_a_share_code_list": {
     "argCount": 1,
@@ -588,6 +588,17 @@ exports[`R7-15②: MCP invoke 的 path / 位置参数 / options 键集快照 > 9
     "argCount": 0,
     "argShape": "none",
     "path": "reference.tradingCalendar",
+  },
+  "get_unusual_fluctuation": {
+    "argCount": 1,
+    "argShape": "options",
+    "optionKeys": [
+      "date",
+      "endDate",
+      "startDate",
+      "triggered",
+    ],
+    "path": "marketEvent.unusualFluctuation",
   },
   "get_us_chip_distribution": {
     "argCount": 2,

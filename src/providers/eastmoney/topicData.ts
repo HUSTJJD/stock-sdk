@@ -10,6 +10,7 @@ import {
   InvalidArgumentError,
   todayInTz,
   MARKET_TZ,
+  buildTimeMeta,
 } from '../../core';
 import {
   normalizeSymbol,
@@ -17,6 +18,7 @@ import {
   type NormalizedSymbol,
 } from '../../symbols';
 import { toIsoDate } from './utils';
+import { fetchDatacenterList, parseDcDate } from './datacenter';
 import type {
   ZTPoolType,
   ZTPoolItem,
@@ -25,6 +27,8 @@ import type {
   BoardChangeItem,
   IndividualStockChangeItem,
   IndividualChangesDay,
+  UnusualFluctuationItem,
+  UnusualFluctuationOptions,
 } from '../../types';
 
 /**
@@ -518,4 +522,57 @@ export async function getBoardChanges(
       changeTypeDistribution: distribution,
     };
   });
+}
+
+export async function getUnusualFluctuation(
+  client: RequestClient,
+  options: UnusualFluctuationOptions = {}
+): Promise<UnusualFluctuationItem[]> {
+  const { date, startDate, endDate, triggered } = options;
+  if (date && (startDate || endDate)) {
+    throw new InvalidArgumentError(
+      'UnusualFluctuation: date 与 startDate/endDate 不能同时指定。'
+    );
+  }
+
+  const clauses: string[] = [];
+  if (date) {
+    clauses.push(`(TRADE_DATE='${toIsoDate(normalizeDate(date)!)}')`);
+  } else {
+    if (startDate) clauses.push(`(TRADE_DATE>='${toIsoDate(normalizeDate(startDate)!)}')`);
+    if (endDate) clauses.push(`(TRADE_DATE<='${toIsoDate(normalizeDate(endDate)!)}')`);
+  }
+  if (triggered !== undefined) {
+    clauses.push(`(IS_HAPPEN="${triggered ? 1 : 0}")`);
+  }
+
+  return fetchDatacenterList(
+    client,
+    {
+      reportName: 'RPT_WATCH_UNUSUAL_FLUCTUATE',
+      columns: 'ALL',
+      sortColumns: 'TRADE_DATE,SECURITY_CODE',
+      sortTypes: '-1,1',
+      pageSize: 500,
+      filter: clauses.length > 0 ? clauses.join('') : undefined,
+    },
+    (item) => {
+      const tradeDate = parseDcDate(item.TRADE_DATE);
+      const meta = buildTimeMeta(tradeDate, MARKET_TZ.CN);
+      return {
+        code: String(item.SECURITY_CODE ?? ''),
+        name: String(item.SECURITY_NAME_ABBR ?? ''),
+        date: tradeDate,
+        timestamp: meta.timestamp,
+        tz: meta.tz,
+        rule: String(item.UNUSUAL_TYPE ?? ''),
+        triggered: String(item.IS_HAPPEN ?? '') === '1',
+        deviationValue: toNumberSafe(item.DEVUATION_VALUE),
+        windowDays: toNumberSafe(item.MAX_DAYS),
+        changePercent: toNumberSafe(item.CHANGE_RATE),
+        direction: String(item.IS_POSITIVE ?? '') === '1' ? 'up' : 'down',
+        targetChangePercent: toNumberSafe(item.CHANGE_RATE_TARGET),
+      };
+    }
+  );
 }

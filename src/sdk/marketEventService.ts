@@ -8,6 +8,8 @@ import type {
   StockChangeType,
   StockChangeItem,
   BoardChangeItem,
+  UnusualFluctuationItem,
+  UnusualFluctuationOptions,
   IndividualStockChangeItem,
   IndividualChangesDay,
   IndividualChangesHistory,
@@ -68,6 +70,13 @@ export class MarketEventService extends BaseService {
   /** 获取板块异动详情 */
   getBoardChanges(): Promise<BoardChangeItem[]> {
     return eastmoney.getBoardChanges(this.client);
+  }
+
+  /** 获取监管异动（交易所股票交易异常波动）列表 */
+  getUnusualFluctuation(
+    options?: UnusualFluctuationOptions
+  ): Promise<UnusualFluctuationItem[]> {
+    return eastmoney.getUnusualFluctuation(this.client, options);
   }
 
   /**
