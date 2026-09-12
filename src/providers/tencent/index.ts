@@ -20,6 +20,14 @@ export { getFundQuotes } from './fundQuote';
 // 分时
 export { getTodayTimeline } from './timeline';
 
+// 历史 K 线备用源（东方财富 push2his 频控时使用）
+export {
+  getTencentHistoryKline,
+  getTencentMinuteKline,
+  type TencentHistoryKlineOptions,
+  type TencentMinuteKlineOptions,
+} from './kline';
+
 // 批量
 export {
   getAShareCodeList,
@@ -46,4 +54,3 @@ export { search } from './search';
 
 // 解析器（供内部使用）
 export * from './parsers';
-

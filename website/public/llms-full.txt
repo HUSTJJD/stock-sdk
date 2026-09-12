@@ -165,13 +165,13 @@ Cursor / Claude Desktop 等配置 `mcpServers`：`{ "command": "npx", "args": ["
 
 ### `sdk.kline`
 
-- **`sdk.kline.cn(symbol, options?)`** — A 股 / 指数历史 K 线（日 / 周 / 月，含复权）：开高低收、成交量额、振幅、涨跌幅等。复权默认 qfq（前复权，看走势）；做回测 / 收益计算请显式传 hfq（后复权）或 ''（不复权）。支持中证特殊指数码形（93xxxx / H+5 位，如 930955 / H30533）。日期格式 YYYYMMDD。
+- **`sdk.kline.cn(symbol, options?)`** — A 股 / 指数历史 K 线（日 / 周 / 月，含复权）：开高低收、成交量额、振幅、涨跌幅等。复权默认 qfq（前复权，看走势）；做回测 / 收益计算请显式传 hfq（后复权）或 ''（不复权）。支持中证特殊指数码形（93xxxx / H+5 位，如 930955 / H30533）。日期格式 YYYYMMDD。普通 A 股在东方财富历史接口频控时按腾讯、新浪顺序切换备用源；备用源缺少的 amount / turnoverRate 返回 null。新浪为最终容灾源且不提供复权价格。
     - `symbol` (位置参数, 必填): 股票 / 指数代码，如 600519 / sh600519 / 930955（中证指数）
     - `options.period` (daily | weekly | monthly, 默认 daily, SDK / MCP): 历史 K 线周期
     - `options.adjust` (qfq | hfq | none, 默认 qfq, SDK / MCP): 复权：qfq=前复权(默认,看走势) / hfq=后复权(算收益) / ''=不复权
     - `options.startDate` (string, SDK / MCP): 起始日期 YYYYMMDD
     - `options.endDate` (string, SDK / MCP): 结束日期 YYYYMMDD
-- **`sdk.kline.cnMinute(symbol, options?)`** — A 股分钟 K 线 / 当日分时。period=1 返回最近约 5 个交易日的分时（不支持复权，可用 startDate/endDate 收窄到当日）；period=5/15/30/60 返回分钟 K 线（adjust 仅此时有效，默认 qfq）。
+- **`sdk.kline.cnMinute(symbol, options?)`** — A 股分钟 K 线 / 当日分时。period=1 返回最近约 5 个交易日的分时（不支持复权，可用 startDate/endDate 收窄到当日）；period=5/15/30/60 返回分钟 K 线（adjust 仅此时有效，默认 qfq），东方财富历史接口频控时按腾讯、新浪顺序切换备用源。分钟备用源仅提供未复权 OHLCV，amount / turnoverRate 返回 null。
     - `symbol` (位置参数, 必填): 股票 / 指数代码，如 600519 / sh600519
     - `options.period` (1 | 5 | 15 | 30 | 60, 默认 1, SDK / MCP): 分钟周期；1=当日分时
     - `options.adjust` (qfq | hfq | none, 默认 qfq, SDK / MCP): 复权：qfq=前复权(默认,看走势) / hfq=后复权(算收益) / ''=不复权
@@ -204,7 +204,7 @@ Cursor / Claude Desktop 等配置 `mcpServers`：`{ "command": "npx", "args": ["
     - _(CLI 专属 options，SDK 请用上方的 SDK 字段；期货 `--adjust` 等 SDK 不生效)_
     - `--start → options.startDate` (string, CLI 专属): 起始日期 YYYYMMDD
     - `--end → options.endDate` (string, CLI 专属): 结束日期 YYYYMMDD
-- **`sdk.kline.withIndicators(symbol, options?)`** — 带技术指标的历史 K 线（A 股 / 港股 / 美股，market 不传自动按 symbol 识别）。周期默认 daily，复权默认按 SDK 默认（qfq）；日期支持 YYYYMMDD 或 YYYY-MM-DD。indicators 为对象，键取自 14 个指标：ma / macd / boll / kdj / rsi / wr / bias / cci / atr / obv / roc / dmi / sar / kc，每个键传 true 即用默认参数开启，或传配置对象（如 { ma: { periods: [5,10,20] }, macd: { short: 12, long: 26, signal: 9 } }）。SDK 会按指标依赖自动向前多取若干 bar 保证首日有效。舍入型指标(ma/macd/boll/kdj/rsi/wr/bias/cci/atr)可传 decimals 指定输出小数位(默认 3;obv/roc/dmi/sar/kc 输出不舍入)。
+- **`sdk.kline.withIndicators(symbol, options?)`** — 带技术指标的历史 K 线（A 股 / 港股 / 美股，market 不传自动按 symbol 识别）。周期默认 daily，复权默认按 SDK 默认（qfq）；日期支持 YYYYMMDD 或 YYYY-MM-DD。indicators 为对象，键取自 14 个指标：ma / macd / boll / kdj / rsi / wr / bias / cci / atr / obv / roc / dmi / sar / kc，每个键传 true 即用默认参数开启，或传配置对象（如 { ma: { periods: [5,10,20] }, macd: { short: 12, long: 26, signal: 9 } }）。A 股底层历史接口频控时按腾讯、新浪顺序切换备用源。SDK 会按指标依赖自动向前多取若干 bar 保证首日有效。舍入型指标(ma/macd/boll/kdj/rsi/wr/bias/cci/atr)可传 decimals 指定输出小数位(默认 3;obv/roc/dmi/sar/kc 输出不舍入)。
     - `symbol` (位置参数, 必填): 股票代码（A 股 / 港股 / 美股）
     - `options.period` (daily | weekly | monthly, 默认 daily, SDK / MCP): 历史 K 线周期
     - `options.adjust` (qfq | hfq | none, 默认 qfq, SDK / MCP): 复权：qfq=前复权(默认,看走势) / hfq=后复权(算收益) / ''=不复权
@@ -2777,6 +2777,7 @@ import {
   inferProviderFromUrl,
   mergeProviderPolicy,
   resolveProviderPolicy,
+  resolveRetryOptions,
   type ProviderName,
   type ProviderRequestPolicy,
   type ResolvedProviderPolicy,
@@ -2987,6 +2988,10 @@ interface ProviderRuntimeState {
 export interface GetOptions {
   responseType?: 'text' | 'json' | 'arraybuffer';
   provider?: ProviderName;
+  /** 单次请求重试覆盖；未传时使用 provider / client 策略。 */
+  retry?: RetryOptions;
+  /** 是否启用同数据源备用 host；默认 true。 */
+  hostFallback?: boolean;
   /** 单次请求的自定义 fetch（优先级高于 client 级 fetchImpl） */
   fetchImpl?: FetchImpl;
   /** 单次请求的外部取消信号（触发后归类为 ABORTED） */
@@ -3372,7 +3377,13 @@ export class RequestClient {
     }
 
     const perCall = { fetchImpl: options.fetchImpl, signal: options.signal };
-    const candidateUrls = this.fallbackManager.getCandidateUrls(url, provider);
+    const retryOptions = options.retry
+      ? resolveRetryOptions({ ...state.policy.retry, ...options.retry })
+      : state.policy.retry;
+    const candidateUrls =
+      options.hostFallback === false
+        ? [url]
+        : this.fallbackManager.getCandidateUrls(url, provider);
     let lastError: RequestError | undefined;
 
     for (let index = 0; index < candidateUrls.length; index++) {
@@ -3381,8 +3392,8 @@ export class RequestClient {
       // 避免 (maxRetries+1) × hosts 的延迟倍乘。
       const retryForHost: ResolvedRetryOptions =
         index === 0
-          ? state.policy.retry
-          : { ...state.policy.retry, maxRetries: 0 };
+          ? retryOptions
+          : { ...retryOptions, maxRetries: 0 };
 
       try {
         const result = await this.executeWithRetry(

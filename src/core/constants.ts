@@ -5,6 +5,8 @@
 // 腾讯财经 API
 export const TENCENT_BASE_URL = 'https://qt.gtimg.cn';
 export const TENCENT_MINUTE_URL = 'https://web.ifzq.gtimg.cn/appstock/app/minute/query';
+export const TENCENT_KLINE_URL = 'https://web.ifzq.gtimg.cn/appstock/app/fqkline/get';
+export const TENCENT_MINUTE_KLINE_URL = 'https://ifzq.gtimg.cn/appstock/app/kline/mkline';
 
 // 股票代码列表
 export const A_SHARE_LIST_URL = 'https://assets.linkdiary.cn/shares/zh_a_list.json';
@@ -126,7 +128,11 @@ export const GLOBAL_FUTURES_MARKET: Record<string, number> = {
   LCPT: 109, LZNT: 109, LALT: 109,
 };
 
-// 新浪期权 API
+// 新浪 A 股 K 线 / 期权 API
+export const SINA_CN_KLINE_URL =
+  'https://money.finance.sina.com.cn/quotes_service/api/json_v2.php/CN_MarketData.getKLineData';
+export const SINA_CN_KLINE_JSONP_URL =
+  'https://quotes.sina.cn/cn/api/jsonp_v2.php/{callback}/CN_MarketDataService.getKLineData';
 export const SINA_OPTION_API_URL =
   'https://stock.finance.sina.com.cn/futures/api/openapi.php/OptionService.getOptionData';
 export const SINA_OPTION_DAYLINE_URL =

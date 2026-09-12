@@ -7,16 +7,41 @@ import {
   EM_TRENDS_URL,
   EM_PUSH_TOKEN,
   assertKlinePeriod,
+  assertMinutePeriod,
   assertAdjustType,
   getPeriodCode,
   getAdjustCode,
+  getSdkErrorCode,
   buildTimeMeta,
   MARKET_TZ,
+  UpstreamEmptyError,
+  type SdkErrorCode,
 } from '../../core';
 import type { HistoryKline, MinuteTimeline, MinuteKline } from '../../types';
 import { normalizeSymbol, toEastmoneySecid } from '../../symbols';
 import { createMinuteKlineProvider } from './minuteKlineFactory';
 import { fetchEmHistoryKline, parseEmKlineCsv } from './utils';
+import {
+  getTencentHistoryKline,
+  getTencentMinuteKline,
+} from '../tencent/kline';
+import { getSinaHistoryKline, getSinaMinuteKline } from '../sina/kline';
+
+const KLINE_FALLBACK_ERROR_CODES: ReadonlySet<SdkErrorCode> = new Set([
+  'NETWORK_ERROR',
+  'TIMEOUT',
+  'HTTP_ERROR',
+  'RATE_LIMITED',
+  'CIRCUIT_OPEN',
+  'UPSTREAM_EMPTY',
+  'UPSTREAM_ERROR',
+  'PARSE_ERROR',
+]);
+
+function shouldUseKlineFallback(error: unknown): boolean {
+  const code = getSdkErrorCode(error);
+  return code !== undefined && KLINE_FALLBACK_ERROR_CODES.has(code);
+}
 
 export interface HistoryKlineOptions {
   /** K 线周期 @default 'daily' */
@@ -92,9 +117,36 @@ export async function getHistoryKline(
     end: endDate,
   });
 
-  const url = EM_KLINE_URL;
-  
-  const { klines } = await fetchEmHistoryKline(client, url, params);
+  let klines: string[];
+  try {
+    const response = await fetchEmHistoryKline(client, EM_KLINE_URL, params, {
+      // push2his 的所有数字子域实际落到同一出口，遭频控时逐域重试只会放大
+      // 请求并延迟降级。历史 K 线先快速探测一次，失败即切腾讯备用源。
+      retry: { maxRetries: 0 },
+      hostFallback: false,
+    });
+    if (!response.dataPresent) {
+      throw new UpstreamEmptyError(
+        'Eastmoney K-line response has no data payload',
+        'eastmoney',
+        EM_KLINE_URL
+      );
+    }
+    klines = response.klines;
+  } catch (primaryError) {
+    if (!shouldUseKlineFallback(primaryError)) throw primaryError;
+    try {
+      return await getTencentHistoryKline(client, symbol, options);
+    } catch (tencentError) {
+      if (!shouldUseKlineFallback(tencentError)) throw primaryError;
+      try {
+        return await getSinaHistoryKline(client, symbol, options);
+      } catch {
+        // 所有备用源均不可用时保留原始东财错误，避免掩盖主因。
+        throw primaryError;
+      }
+    }
+  }
 
   if (klines.length === 0) {
     return [];
@@ -131,6 +183,11 @@ const getMinuteKlineByFactory = createMinuteKlineProvider<
   ndays: { fixed: '5' },
   fqt: 'option',
   includeUt: true,
+  klineRequestOptions: {
+    retry: { maxRetries: 0 },
+    hostFallback: false,
+  },
+  requireKlineData: true,
   window: { mode: 'filter' },
   mapTrendRow: ({ time, ...nums }) => {
     const meta = buildTimeMeta(time, MARKET_TZ.CN);
@@ -155,5 +212,35 @@ export async function getMinuteKline(
   symbol: string,
   options: MinuteKlineOptions = {}
 ): Promise<MinuteTimeline[] | MinuteKline[]> {
-  return getMinuteKlineByFactory(client, symbol, options);
+  const period = options.period ?? '1';
+  assertMinutePeriod(period);
+  if (period !== '1') {
+    assertAdjustType(options.adjust ?? 'qfq');
+  }
+
+  try {
+    return await getMinuteKlineByFactory(client, symbol, options);
+  } catch (primaryError) {
+    if (period === '1' || !shouldUseKlineFallback(primaryError)) {
+      throw primaryError;
+    }
+    try {
+      return await getTencentMinuteKline(client, symbol, {
+        period,
+        startDate: options.startDate,
+        endDate: options.endDate,
+      });
+    } catch (tencentError) {
+      if (!shouldUseKlineFallback(tencentError)) throw primaryError;
+      try {
+        return await getSinaMinuteKline(client, symbol, {
+          period,
+          startDate: options.startDate,
+          endDate: options.endDate,
+        });
+      } catch {
+        throw primaryError;
+      }
+    }
+  }
 }
