@@ -272,6 +272,8 @@ Coverage varies by market — this table helps you quickly check whether the SDK
 | Trading calendar | ✅ `calendar.*` | ⚠️ market status only | ⚠️ market status only | — | — | — |
 
 > **Data latency**: real-time quotes come from public endpoints (Tencent Finance / Eastmoney, etc.), **not exchange matching feeds** — typically delayed by seconds to minutes. Not suitable for high-frequency trading decisions.
+>
+> **K-line fallback**: Regular CN historical and 5/15/30/60-minute K-lines use Eastmoney primarily and fall back to Tencent, then Sina OHLCV when `push2his` is disconnected or soft-limited.
 
 ---
 

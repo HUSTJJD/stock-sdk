@@ -4,7 +4,7 @@
 > 单一事实源）与 `src/types` 自动生成，目的是让 AI 工具**一次性读取** stock-sdk 的全部
 > 命名空间方法、参数与返回数据结构。**请勿手改本文件**——改 spec / types 后重新生成。
 >
-> 版本：v2.4.3 · 文档站：https://stock-sdk.linkdiary.cn · npm: `npm i stock-sdk`
+> 版本：v2.4.4 · 文档站：https://stock-sdk.linkdiary.cn · npm: `npm i stock-sdk`
 
 ## 这是什么
 
@@ -44,7 +44,7 @@ import { screen, backtest } from 'stock-sdk/screener';
 
 ### 安装与模块格式
 
-- 最新版：`npm i stock-sdk`（当前 v2.4.3）
+- 最新版：`npm i stock-sdk`（当前 v2.4.4）
 - v1 旧版（已封存）：`npm i stock-sdk@legacy`
 - **ESM + CommonJS** 双格式；主包 `import { StockSDK } from 'stock-sdk'`
 - 纯计算 subpath：`stock-sdk/{indicators,signals,symbols,screener,cache,errors,mcp}`（tree-shake 友好，不拖入全部 provider）
@@ -108,7 +108,7 @@ Cursor / Claude Desktop 等配置 `mcpServers`：`{ "command": "npx", "args": ["
 
 ---
 
-## 一、命名空间方法（共 93 个）
+## 一、命名空间方法（共 94 个）
 
 > 形如 `sdk.quotes.cn(codes)` / `sdk.kline.cn(symbol, options?)`；`codes[]` 形态的方法第一个参数为 **string[]**。
 > 标注 **CLI 专属** 的参数/flag 不应传入 SDK options（除非文档明确说明 SDK 消费）。
@@ -165,13 +165,13 @@ Cursor / Claude Desktop 等配置 `mcpServers`：`{ "command": "npx", "args": ["
 
 ### `sdk.kline`
 
-- **`sdk.kline.cn(symbol, options?)`** — A 股 / 指数历史 K 线（日 / 周 / 月，含复权）：开高低收、成交量额、振幅、涨跌幅等。复权默认 qfq（前复权，看走势）；做回测 / 收益计算请显式传 hfq（后复权）或 ''（不复权）。支持中证特殊指数码形（93xxxx / H+5 位，如 930955 / H30533）。日期格式 YYYYMMDD。
+- **`sdk.kline.cn(symbol, options?)`** — A 股 / 指数历史 K 线（日 / 周 / 月，含复权）：开高低收、成交量额、振幅、涨跌幅等。复权默认 qfq（前复权，看走势）；做回测 / 收益计算请显式传 hfq（后复权）或 ''（不复权）。支持中证特殊指数码形（93xxxx / H+5 位，如 930955 / H30533）。日期格式 YYYYMMDD。普通 A 股在东方财富历史接口频控时按腾讯、新浪顺序切换备用源；备用源缺少的 amount / turnoverRate 返回 null。新浪为最终容灾源且不提供复权价格。
     - `symbol` (位置参数, 必填): 股票 / 指数代码，如 600519 / sh600519 / 930955（中证指数）
     - `options.period` (daily | weekly | monthly, 默认 daily, SDK / MCP): 历史 K 线周期
     - `options.adjust` (qfq | hfq | none, 默认 qfq, SDK / MCP): 复权：qfq=前复权(默认,看走势) / hfq=后复权(算收益) / ''=不复权
     - `options.startDate` (string, SDK / MCP): 起始日期 YYYYMMDD
     - `options.endDate` (string, SDK / MCP): 结束日期 YYYYMMDD
-- **`sdk.kline.cnMinute(symbol, options?)`** — A 股分钟 K 线 / 当日分时。period=1 返回最近约 5 个交易日的分时（不支持复权，可用 startDate/endDate 收窄到当日）；period=5/15/30/60 返回分钟 K 线（adjust 仅此时有效，默认 qfq）。
+- **`sdk.kline.cnMinute(symbol, options?)`** — A 股分钟 K 线 / 当日分时。period=1 返回最近约 5 个交易日的分时（不支持复权，可用 startDate/endDate 收窄到当日）；period=5/15/30/60 返回分钟 K 线（adjust 仅此时有效，默认 qfq），东方财富历史接口频控时按腾讯、新浪顺序切换备用源。分钟备用源仅提供未复权 OHLCV，amount / turnoverRate 返回 null。
     - `symbol` (位置参数, 必填): 股票 / 指数代码，如 600519 / sh600519
     - `options.period` (1 | 5 | 15 | 30 | 60, 默认 1, SDK / MCP): 分钟周期；1=当日分时
     - `options.adjust` (qfq | hfq | none, 默认 qfq, SDK / MCP): 复权：qfq=前复权(默认,看走势) / hfq=后复权(算收益) / ''=不复权
@@ -204,7 +204,7 @@ Cursor / Claude Desktop 等配置 `mcpServers`：`{ "command": "npx", "args": ["
     - _(CLI 专属 options，SDK 请用上方的 SDK 字段；期货 `--adjust` 等 SDK 不生效)_
     - `--start → options.startDate` (string, CLI 专属): 起始日期 YYYYMMDD
     - `--end → options.endDate` (string, CLI 专属): 结束日期 YYYYMMDD
-- **`sdk.kline.withIndicators(symbol, options?)`** — 带技术指标的历史 K 线（A 股 / 港股 / 美股，market 不传自动按 symbol 识别）。周期默认 daily，复权默认按 SDK 默认（qfq）；日期支持 YYYYMMDD 或 YYYY-MM-DD。indicators 为对象，键取自 14 个指标：ma / macd / boll / kdj / rsi / wr / bias / cci / atr / obv / roc / dmi / sar / kc，每个键传 true 即用默认参数开启，或传配置对象（如 { ma: { periods: [5,10,20] }, macd: { short: 12, long: 26, signal: 9 } }）。SDK 会按指标依赖自动向前多取若干 bar 保证首日有效。舍入型指标(ma/macd/boll/kdj/rsi/wr/bias/cci/atr)可传 decimals 指定输出小数位(默认 3;obv/roc/dmi/sar/kc 输出不舍入)。
+- **`sdk.kline.withIndicators(symbol, options?)`** — 带技术指标的历史 K 线（A 股 / 港股 / 美股，market 不传自动按 symbol 识别）。周期默认 daily，复权默认按 SDK 默认（qfq）；日期支持 YYYYMMDD 或 YYYY-MM-DD。indicators 为对象，键取自 14 个指标：ma / macd / boll / kdj / rsi / wr / bias / cci / atr / obv / roc / dmi / sar / kc，每个键传 true 即用默认参数开启，或传配置对象（如 { ma: { periods: [5,10,20] }, macd: { short: 12, long: 26, signal: 9 } }）。A 股底层历史接口频控时按腾讯、新浪顺序切换备用源。SDK 会按指标依赖自动向前多取若干 bar 保证首日有效。舍入型指标(ma/macd/boll/kdj/rsi/wr/bias/cci/atr)可传 decimals 指定输出小数位(默认 3;obv/roc/dmi/sar/kc 输出不舍入)。
     - `symbol` (位置参数, 必填): 股票代码（A 股 / 港股 / 美股）
     - `options.period` (daily | weekly | monthly, 默认 daily, SDK / MCP): 历史 K 线周期
     - `options.adjust` (qfq | hfq | none, 默认 qfq, SDK / MCP): 复权：qfq=前复权(默认,看走势) / hfq=后复权(算收益) / ''=不复权
@@ -402,6 +402,11 @@ Cursor / Claude Desktop 等配置 `mcpServers`：`{ "command": "npx", "args": ["
     - `symbol` (位置参数, 必填): 股票代码，如 600519 / sh600519
     - `options.days` (number, 默认 7, SDK / MCP): 最近 N 个自然日,默认 7,最大 60
 - **`sdk.marketEvent.boardChanges()`** — 获取当日板块异动汇总（东方财富）：每条含板块名称、涨跌幅(%)、主力净流入(元)、异动总次数、异动最频繁个股（代码 / 名称 / 方向）及异动类型分布。无参。
+- **`sdk.marketEvent.unusualFluctuation(options?)`** — 获取交易所「股票交易异常波动」监管预警（东方财富）：每条含代码、名称、交易日、触发规则原文（如「连续十个交易日内日收盘价涨跌幅偏离值累计达到+100%」）、是否已触发、累计涨跌幅偏离值(%)、规则窗口天数、当日涨跌幅(%)、异动方向(up/down)。triggered=true 仅看已触发，false 仅看逼近阈值但未触发，缺省返回全部。date 查单日；startDate/endDate 查区间，两者互斥；均缺省时返回上游全部留存数据（约两个月、数千条，建议收窄）。⏰ 日频盘后数据：收盘后统计发布，盘中查当天可能无数据，属正常时效。
+    - `options.date` (string, SDK / MCP): 指定交易日 YYYYMMDD 或 YYYY-MM-DD（与 startDate/endDate 互斥）
+    - `options.startDate` (string, SDK / MCP): 起始交易日 YYYYMMDD 或 YYYY-MM-DD
+    - `options.endDate` (string, SDK / MCP): 结束交易日 YYYYMMDD 或 YYYY-MM-DD
+    - `options.triggered` (boolean, SDK / MCP): true 仅返回已触发，false 仅返回逼近未触发；缺省全部
 
 ### `sdk.dragonTiger`
 
@@ -2541,6 +2546,8 @@ export interface MarginTargetItem {
 // ============================================================
 // src/types/marketEvent.ts
 // ============================================================
+import type { MarketTz } from '../core/time';
+
 /**
  * 涨停板 / 盘口异动 数据类型
  */
@@ -2749,6 +2756,48 @@ export interface BoardChangeItem {
   changeTypeDistribution: Record<string, number>;
 }
 
+/**
+ * 监管异动（交易所股票交易异常波动）项
+ */
+export interface UnusualFluctuationItem {
+  /** 股票代码 */
+  code: string;
+  /** 股票名称 */
+  name: string;
+  /** 交易日 YYYY-MM-DD */
+  date: string;
+  /** 交易日对应当日 00:00 (`Asia/Shanghai`) 的 UTC 毫秒时间戳;无法解析时为 `null` */
+  timestamp: number | null;
+  /** 交易日所属市场时区 (`Asia/Shanghai`) */
+  tz: MarketTz;
+  /** 触发规则原文，如「连续十个交易日内日收盘价涨跌幅偏离值累计达到+100%」 */
+  rule: string;
+  /** 是否已触发（`false` 表示逼近阈值但尚未触发） */
+  triggered: boolean;
+  /** 累计涨跌幅偏离值(%)，与规则中的阈值同口径 */
+  deviationValue: number | null;
+  /** 规则统计窗口天数 */
+  windowDays: number | null;
+  /** 当日涨跌幅(%) */
+  changePercent: number | null;
+  /** 异动方向：`'up'` 同向上涨 / `'down'` 同向下跌 */
+  direction: 'up' | 'down';
+  /** 上游 CHANGE_RATE_TARGET 原值(%)，语义以上游为准 */
+  targetChangePercent: number | null;
+}
+
+/** 监管异动查询选项 */
+export interface UnusualFluctuationOptions {
+  /** 指定交易日 YYYYMMDD 或 YYYY-MM-DD；与 startDate/endDate 互斥 */
+  date?: string;
+  /** 起始交易日 YYYYMMDD 或 YYYY-MM-DD */
+  startDate?: string;
+  /** 结束交易日 YYYYMMDD 或 YYYY-MM-DD */
+  endDate?: string;
+  /** 仅返回已触发(`true`) 或仅返回逼近未触发(`false`)；缺省返回全部 */
+  triggered?: boolean;
+}
+
 // ============================================================
 // src/core/request.ts
 // ============================================================
@@ -2777,6 +2826,7 @@ import {
   inferProviderFromUrl,
   mergeProviderPolicy,
   resolveProviderPolicy,
+  resolveRetryOptions,
   type ProviderName,
   type ProviderRequestPolicy,
   type ResolvedProviderPolicy,
@@ -2987,6 +3037,10 @@ interface ProviderRuntimeState {
 export interface GetOptions {
   responseType?: 'text' | 'json' | 'arraybuffer';
   provider?: ProviderName;
+  /** 单次请求重试覆盖；未传时使用 provider / client 策略。 */
+  retry?: RetryOptions;
+  /** 是否启用同数据源备用 host；默认 true。 */
+  hostFallback?: boolean;
   /** 单次请求的自定义 fetch（优先级高于 client 级 fetchImpl） */
   fetchImpl?: FetchImpl;
   /** 单次请求的外部取消信号（触发后归类为 ABORTED） */
@@ -3372,7 +3426,13 @@ export class RequestClient {
     }
 
     const perCall = { fetchImpl: options.fetchImpl, signal: options.signal };
-    const candidateUrls = this.fallbackManager.getCandidateUrls(url, provider);
+    const retryOptions = options.retry
+      ? resolveRetryOptions({ ...state.policy.retry, ...options.retry })
+      : state.policy.retry;
+    const candidateUrls =
+      options.hostFallback === false
+        ? [url]
+        : this.fallbackManager.getCandidateUrls(url, provider);
     let lastError: RequestError | undefined;
 
     for (let index = 0; index < candidateUrls.length; index++) {
@@ -3381,8 +3441,8 @@ export class RequestClient {
       // 避免 (maxRetries+1) × hosts 的延迟倍乘。
       const retryForHost: ResolvedRetryOptions =
         index === 0
-          ? state.policy.retry
-          : { ...state.policy.retry, maxRetries: 0 };
+          ? retryOptions
+          : { ...retryOptions, maxRetries: 0 };
 
       try {
         const result = await this.executeWithRetry(

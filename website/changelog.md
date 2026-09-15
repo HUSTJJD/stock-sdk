@@ -6,6 +6,19 @@ pageClass: changelog-page
 
 本页记录 Stock SDK 的版本更新历史。v2.0.0 是一次**架构跃迁**——在不扩展数据源的前提下，重做了符号模型、数据契约、API 表面、请求层与错误体系，并新增 CLI / MCP 与 subpath 导出。
 
+## v2.4.4
+
+> 发布时间：待发布
+
+### 新增
+
+- **监管异动 `marketEvent.unusualFluctuation`**（[#76](https://github.com/chengzuopeng/stock-sdk/issues/76)，感谢 [@WJMA-GIT](https://github.com/WJMA-GIT)）：交易所股票交易异常波动预警，含规则原文、是否已触发、累计偏离值与方向；`triggered` 可只看已触发或逼近阈值的标的。同步派生 CLI 与 MCP 工具 `get_unusual_fluctuation`。
+
+### 修复
+
+- **A 股 K 线在东财受限时切换备用源**（[#75](https://github.com/chengzuopeng/stock-sdk/pull/75)，感谢 [@run-bigpig](https://github.com/run-bigpig)）：`push2his` 断连或返回 `data:null` 时按腾讯、新浪顺序回退，`kline.cn` / `cnMinute` / `withIndicators` 均受益。
+- **腾讯备用源前复权价为负**：腾讯 `qfqday` 对长历史高涨幅标的会算出负价（实测 sh600519 约 59% 收盘价为负），改为取 hfq 序列按末根不复权价线性缩放。qfq 是默认复权方式且失败静默，负价会直接污染指标与回测。
+
 ## v2.4.3
 
 > 发布时间：待发布

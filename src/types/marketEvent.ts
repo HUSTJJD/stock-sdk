@@ -1,3 +1,5 @@
+import type { MarketTz } from '../core/time';
+
 /**
  * 涨停板 / 盘口异动 数据类型
  */
@@ -204,4 +206,46 @@ export interface BoardChangeItem {
   topStockDirection: string;
   /** 异动类型分布（key 为类型代码，value 为出现次数） */
   changeTypeDistribution: Record<string, number>;
+}
+
+/**
+ * 监管异动（交易所股票交易异常波动）项
+ */
+export interface UnusualFluctuationItem {
+  /** 股票代码 */
+  code: string;
+  /** 股票名称 */
+  name: string;
+  /** 交易日 YYYY-MM-DD */
+  date: string;
+  /** 交易日对应当日 00:00 (`Asia/Shanghai`) 的 UTC 毫秒时间戳;无法解析时为 `null` */
+  timestamp: number | null;
+  /** 交易日所属市场时区 (`Asia/Shanghai`) */
+  tz: MarketTz;
+  /** 触发规则原文，如「连续十个交易日内日收盘价涨跌幅偏离值累计达到+100%」 */
+  rule: string;
+  /** 是否已触发（`false` 表示逼近阈值但尚未触发） */
+  triggered: boolean;
+  /** 累计涨跌幅偏离值(%)，与规则中的阈值同口径 */
+  deviationValue: number | null;
+  /** 规则统计窗口天数 */
+  windowDays: number | null;
+  /** 当日涨跌幅(%) */
+  changePercent: number | null;
+  /** 异动方向：`'up'` 同向上涨 / `'down'` 同向下跌 */
+  direction: 'up' | 'down';
+  /** 上游 CHANGE_RATE_TARGET 原值(%)，语义以上游为准 */
+  targetChangePercent: number | null;
+}
+
+/** 监管异动查询选项 */
+export interface UnusualFluctuationOptions {
+  /** 指定交易日 YYYYMMDD 或 YYYY-MM-DD；与 startDate/endDate 互斥 */
+  date?: string;
+  /** 起始交易日 YYYYMMDD 或 YYYY-MM-DD */
+  startDate?: string;
+  /** 结束交易日 YYYYMMDD 或 YYYY-MM-DD */
+  endDate?: string;
+  /** 仅返回已触发(`true`) 或仅返回逼近未触发(`false`)；缺省返回全部 */
+  triggered?: boolean;
 }

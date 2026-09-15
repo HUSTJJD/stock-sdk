@@ -19,7 +19,7 @@
 | 板块 | `sdk.board.industry.*` / `sdk.board.concept.*` | 行业 / 概念板块列表、行情、成分、K 线 |
 | 资金流 | `sdk.fundFlow.individual` / `market` / `rank` / `sectorRank` | 个股 / 大盘 / 排行 / 板块资金流 |
 | 北向资金 | `sdk.northbound.minute` / `summary` / `holdingRank` / `individual` | 沪深港通 / 北向资金 |
-| 市场异动 | `sdk.marketEvent.ztPool` / `stockChanges` / `boardChanges` | 涨停池 / 盘口异动 / 板块异动 |
+| 市场异动 | `sdk.marketEvent.ztPool` / `stockChanges` / `boardChanges` / `unusualFluctuation` | 涨停池 / 盘口异动 / 板块异动 / 监管异动预警 |
 | 龙虎榜 | `sdk.dragonTiger.detail` / `stockStats` / `institution` / `branchRank` | 龙虎榜明细与统计 |
 | 大宗交易 | `sdk.blockTrade.marketStat` / `detail` / `dailyStat` | 大宗交易统计与明细 |
 | 融资融券 | `sdk.margin.accountInfo` / `targetList` | 两融账户信息与标的 |

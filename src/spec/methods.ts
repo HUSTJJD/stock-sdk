@@ -636,7 +636,9 @@ export const METHOD_SPECS: MethodSpec[] = [
     mcpDesc:
       'A 股 / 指数历史 K 线（日 / 周 / 月，含复权）：开高低收、成交量额、振幅、涨跌幅等。' +
       "复权默认 qfq（前复权，看走势）；做回测 / 收益计算请显式传 hfq（后复权）或 ''（不复权）。" +
-      '支持中证特殊指数码形（93xxxx / H+5 位，如 930955 / H30533）。日期格式 YYYYMMDD。',
+      '支持中证特殊指数码形（93xxxx / H+5 位，如 930955 / H30533）。日期格式 YYYYMMDD。' +
+      '普通 A 股在东方财富历史接口频控时按腾讯、新浪顺序切换备用源；备用源缺少的 amount / turnoverRate 返回 null。' +
+      '新浪为最终容灾源且不提供复权价格。',
     argShape: 'symbol+options',
     positional: [SYMBOL_REQ('股票 / 指数代码，如 600519 / sh600519 / 930955（中证指数）')],
     params: [PERIOD_DWM, ADJUST, START, END],
@@ -649,7 +651,9 @@ export const METHOD_SPECS: MethodSpec[] = [
     mcpDesc:
       'A 股分钟 K 线 / 当日分时。period=1 返回最近约 5 个交易日的分时' +
       '（不支持复权，可用 startDate/endDate 收窄到当日）；' +
-      'period=5/15/30/60 返回分钟 K 线（adjust 仅此时有效，默认 qfq）。',
+      'period=5/15/30/60 返回分钟 K 线（adjust 仅此时有效，默认 qfq），' +
+      '东方财富历史接口频控时按腾讯、新浪顺序切换备用源。分钟备用源仅提供未复权 OHLCV，' +
+      'amount / turnoverRate 返回 null。',
     argShape: 'symbol+options',
     positional: [SYMBOL_REQ('股票 / 指数代码，如 600519 / sh600519')],
     params: [PERIOD_MIN, ADJUST, START_MIN_CN, END_MIN_CN],
@@ -718,6 +722,7 @@ export const METHOD_SPECS: MethodSpec[] = [
       'indicators 为对象，键取自 14 个指标：ma / macd / boll / kdj / rsi / wr / bias / cci / ' +
       'atr / obv / roc / dmi / sar / kc，每个键传 true 即用默认参数开启，或传配置对象' +
       '（如 { ma: { periods: [5,10,20] }, macd: { short: 12, long: 26, signal: 9 } }）。' +
+      'A 股底层历史接口频控时按腾讯、新浪顺序切换备用源。' +
       'SDK 会按指标依赖自动向前多取若干 bar 保证首日有效。' +
       '舍入型指标(ma/macd/boll/kdj/rsi/wr/bias/cci/atr)可传 decimals 指定输出小数位' +
       '(默认 3;obv/roc/dmi/sar/kc 输出不舍入)。',
@@ -1257,6 +1262,25 @@ export const METHOD_SPECS: MethodSpec[] = [
       '获取当日板块异动汇总（东方财富）：每条含板块名称、涨跌幅(%)、主力净流入(元)、异动总次数、' +
       '异动最频繁个股（代码 / 名称 / 方向）及异动类型分布。无参。',
     argShape: 'none',
+  },
+  {
+    path: ['marketEvent', 'unusualFluctuation'],
+    toolName: 'get_unusual_fluctuation',
+    summary: '监管异动(异常波动预警)',
+    mcpDesc:
+      '获取交易所「股票交易异常波动」监管预警（东方财富）：每条含代码、名称、交易日、触发规则原文' +
+      '（如「连续十个交易日内日收盘价涨跌幅偏离值累计达到+100%」）、是否已触发、累计涨跌幅偏离值(%)、' +
+      '规则窗口天数、当日涨跌幅(%)、异动方向(up/down)。' +
+      'triggered=true 仅看已触发，false 仅看逼近阈值但未触发，缺省返回全部。' +
+      'date 查单日；startDate/endDate 查区间，两者互斥；均缺省时返回上游全部留存数据（约两个月、数千条，建议收窄）。' +
+      '⏰ 日频盘后数据：收盘后统计发布，盘中查当天可能无数据，属正常时效。',
+    argShape: 'options',
+    params: [
+      { flag: 'date', type: 'string', desc: '指定交易日 YYYYMMDD 或 YYYY-MM-DD', mcpDesc: '指定交易日 YYYYMMDD 或 YYYY-MM-DD（与 startDate/endDate 互斥）' },
+      { ...START, mcpDesc: '起始交易日 YYYYMMDD 或 YYYY-MM-DD' },
+      { ...END, mcpDesc: '结束交易日 YYYYMMDD 或 YYYY-MM-DD' },
+      { flag: 'triggered', type: 'boolean', desc: '仅已触发(true)/仅未触发(false)', mcpDesc: 'true 仅返回已触发，false 仅返回逼近未触发；缺省全部' },
+    ],
   },
   // ===== dragonTiger (5) =====
   {

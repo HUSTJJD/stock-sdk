@@ -1,7 +1,12 @@
 /**
  * 东方财富 - 通用工具函数
  */
-import { RequestClient, addDays, asyncPool } from '../../core';
+import {
+  RequestClient,
+  type GetOptions,
+  addDays,
+  asyncPool,
+} from '../../core';
 
 /** {@link fetchPagesInWaves} 单页取数结果。 */
 export interface WavePage<T> {
@@ -286,14 +291,30 @@ export function parseEmKlineCsv(line: string): EmKlineItem {
 export async function fetchEmHistoryKline(
   client: RequestClient,
   url: string,
-  params: URLSearchParams
-): Promise<{ klines: string[]; name?: string; code?: string }> {
+  params: URLSearchParams,
+  requestOptions: Pick<GetOptions, 'retry' | 'hostFallback'> = {}
+): Promise<{
+  klines: string[];
+  name?: string;
+  code?: string;
+  dataPresent: boolean;
+}> {
   const fullUrl = `${url}?${params.toString()}`;
-  const json = await client.get<any>(fullUrl, { responseType: 'json' });
+  const json = await client.get<{
+    data?: {
+      klines?: unknown;
+      name?: unknown;
+      code?: unknown;
+    } | null;
+  }>(fullUrl, { responseType: 'json', ...requestOptions });
+  const data = json?.data;
 
   return {
-    klines: json?.data?.klines || [],
-    name: json?.data?.name,
-    code: json?.data?.code,
+    klines: Array.isArray(data?.klines)
+      ? data.klines.filter((line): line is string => typeof line === 'string')
+      : [],
+    name: typeof data?.name === 'string' ? data.name : undefined,
+    code: typeof data?.code === 'string' ? data.code : undefined,
+    dataPresent: data !== null && typeof data === 'object',
   };
 }

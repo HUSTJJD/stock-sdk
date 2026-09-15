@@ -131,6 +131,7 @@ export {
   getIndividualStockChanges,
   assertCnStockSymbol,
   getBoardChanges,
+  getUnusualFluctuation,
 } from './topicData';
 
 // 龙虎榜
